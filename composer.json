@@ -1,0 +1,28 @@
+{
+  "name": "setbased/php-data-sync",
+  "description": "",
+  "keywords": [
+    "MySQL",
+    "audit",
+    "triggers"
+  ],
+  "type": "tool",
+  "license": "MIT",
+  "require-dev": {
+    "phpunit/phpunit": "*",
+    "setbased/phing-extensions": "2.*"
+  },
+  "require": {
+    "monolog/monolog": "^1.18",
+    "php": ">=5.4.0",
+    "setbased/php-stratum": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "SetBased\\DataSync\\": "src/"
+    }
+  },
+  "config": {
+    "bin-dir": "bin"
+  }
+}
