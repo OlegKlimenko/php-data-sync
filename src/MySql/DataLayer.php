@@ -64,7 +64,7 @@ class DataLayer extends StaticDataLayer {
   {
     // Getting a name of constraint which type is UNIQUE.
     $sql = sprintf("
-    SELECT CONSTRAINT_NAME 'constraint_name'
+    SELECT CONSTRAINT_NAME AS 'constraint_name'
     FROM information_schema.TABLE_CONSTRAINTS
     WHERE constraint_schema = %s
     AND TABLE_NAME = %s
@@ -81,7 +81,7 @@ class DataLayer extends StaticDataLayer {
       {
         // Selecting a name of column by name of constraint.
         $sql = sprintf("
-        SELECT COLUMN_NAME  'column_name'
+        SELECT COLUMN_NAME AS 'column_name'
         FROM information_schema.KEY_COLUMN_USAGE
         WHERE constraint_schema = %s
         AND TABLE_NAME = %s
@@ -97,6 +97,47 @@ class DataLayer extends StaticDataLayer {
     { 
       return []; 
     }
+  }
+
+  //------------------------------------------------------------------------------------------------------------------
+  /**
+   * Selects info about primary keys of a table in selected schema.
+   *
+   * @param string $schemaName The name of the schema.
+   *
+   * @param string $tableName The name of a table.
+   *
+   * @return array[]
+   */
+  public static function getForeignKeys($schemaName, $tableName)
+  {
+    // Getting a constraint name for foreign key.
+    $sql = sprintf("
+    SELECT CONSTRAINT_NAME AS 'constraint_name'
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE information_schema.TABLE_CONSTRAINTS.CONSTRAINT_TYPE = 'FOREIGN KEY'
+    AND information_schema.TABLE_CONSTRAINTS.TABLE_SCHEMA = %s
+    AND information_schema.TABLE_CONSTRAINTS.TABLE_NAME = %s", self::quoteString($schemaName),
+                                                               self::quoteString($tableName));
+    $constraint_names = self::executeRows($sql);
+    $field_names = [];
+
+    // Getting names of columns and tables of foreign keys.
+    foreach($constraint_names as $constraint_name)
+    {
+      $sql = sprintf("
+      SELECT COLUMN_NAME AS 'column_name',
+             REFERENCED_TABLE_NAME AS 'ref_table_name',
+             REFERENCED_COLUMN_NAME AS 'ref_column_name'
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE CONSTRAINT_NAME = %s", self::quoteString($constraint_name['constraint_name']));
+
+      $table_items = self::executeRows($sql);
+      $table_items[0]['constraint_name'] = $constraint_name['constraint_name'];
+
+      $field_names[] = $table_items;
+    }
+    return $field_names;
   }
 
   //------------------------------------------------------------------------------------------------------------------
