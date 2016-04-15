@@ -47,7 +47,7 @@ class DataSync
     // Update config file.
     $this->updateConfigFile($data_layer);
 
-    // Drop database connection
+    // Drop database connection.
     $data_layer::disconnect();
 
     return 0;
@@ -134,7 +134,7 @@ class DataSync
       // If we must sync data in the table and no metadata has been defined add metadata to the config.
       if ($sync_flag and !isset($this->configData['metadata'][$table_name]))
       {
-        // Get primary key
+        // Set primary key.
         $primary_key = $dataLayer::getTablePrimaryKey($this->configData['database']['data_schema'], $table_name);
         if (!empty($primary_key))
         {
@@ -146,7 +146,7 @@ class DataSync
           $this->configData['metadata'][$table_name]['primary_key'] = null;
         }
 
-        // Get secondary keys
+        // Set secondary keys.
         $secondary_keys = $dataLayer::getTableSecondaryKey($this->configData['database']['data_schema'], $table_name);
         if (!empty($secondary_keys))
         {
@@ -158,7 +158,16 @@ class DataSync
           $this->configData['metadata'][$table_name]['secondary_key'] = null;
         }
 
-        $this->configData['metadata'][$table_name]['foreign_keys'] = [];
+        // Set foreign keys.
+        $foreign_keys = $dataLayer::getForeignKeys($this->configData['database']['data_schema'], $table_name);
+        if (!empty($foreign_keys)) 
+        {
+          $this->setFkNames($foreign_keys, $table_name);
+        }
+        else
+        {
+          $this->configData['metadata'][$table_name]['foreign_keys'] = null;
+        }
       }
     }
   }
@@ -179,6 +188,31 @@ class DataSync
         $list_names[] = $name['column_name'];
     }
     return $list_names;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Sets foreign keys into config.
+   *
+   * @param array[] $foreignKeys
+   *
+   * @param string $tableName
+   */
+  public function setFkNames($foreignKeys, $tableName)
+  {
+    $fk_number = 0;
+    foreach($foreignKeys as $foreign_key)
+    {
+      $metadata = [];
+      foreach($foreign_key as $col_names)
+      {
+        $metadata['column'] = $col_names['column_name'];
+        $metadata['ref_table'] = $col_names['ref_table_name'];
+        $metadata['ref_column'] = $col_names['ref_column_name'];
+        $fk_number += 1;
+      }
+      $this->configData['metadata'][$tableName]['foreign_keys'][$col_names['constraint_name']] = $metadata;
+    }
   }
 
   //--------------------------------------------------------------------------------------------------------------------
