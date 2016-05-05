@@ -2,8 +2,9 @@
 //----------------------------------------------------------------------------------------------------------------------
 namespace SetBased\DataSync;
 
-use SetBased\Affirm\Exception\RuntimeException;
 //----------------------------------------------------------------------------------------------------------------------
+use SetBased\Exception\RuntimeException;
+
 /**
  * Static class for miscellaneous functions.
  */
@@ -13,24 +14,24 @@ class Util
   /**
    * Returns the value of a setting.
    *
-   * @param array  $theSettings      The settings as returned by parse_ini_file.
-   * @param bool   $theMandatoryFlag If set and setting $theSettingName is not found in section $theSectionName
+   * @param array  $settings         The settings as returned by parse_ini_file.
+   * @param bool   $mandatoryFlag    If set and setting $theSettingName is not found in section $theSectionName
    *                                 an exception will be thrown.
-   * @param string $theSectionName   The name of the section of the requested setting.
-   * @param string $theSettingName   The name of the setting of the requested setting.
+   * @param string $sectionName      The name of the section of the requested setting.
+   * @param string $settingName      The name of the setting of the requested setting.
    *
    * @return array|null
    *
    * @throws RuntimeException
    */
-  public static function getSetting($theSettings, $theMandatoryFlag, $theSectionName, $theSettingName)
+  public static function getSetting($settings, $mandatoryFlag, $sectionName, $settingName)
   {
     // Test if the section exists.
-    if (!array_key_exists($theSectionName, $theSettings))
+    if (!array_key_exists($sectionName, $settings))
     {
-      if ($theMandatoryFlag)
+      if ($mandatoryFlag)
       {
-        throw new RuntimeException("Section '%s' not found in configuration file.", $theSectionName);
+        throw new RuntimeException("Section '%s' not found in configuration file.", $sectionName);
       }
       else
       {
@@ -38,20 +39,20 @@ class Util
       }
     }
     // Test if the setting in the section exists.
-    if (!array_key_exists($theSettingName, $theSettings[$theSectionName]))
+    if (!array_key_exists($settingName, $settings[$sectionName]))
     {
-      if ($theMandatoryFlag)
+      if ($mandatoryFlag)
       {
         throw new RuntimeException("Setting '%s' not found in section '%s' configuration file.",
-                                   $theSettingName,
-                                   $theSectionName);
+                                   $settingName,
+                                   $sectionName);
       }
       else
       {
         return null;
       }
     }
-    return $theSettings[$theSectionName][$theSettingName];
+    return $settings[$sectionName][$settingName];
   }
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -64,23 +65,23 @@ class Util
    * is written.
    * * Renaming a file is atomic. So, running processes will never read a partially written data.
    *
-   * @param string $theFilename The name of the file were the data must be stored.
-   * @param string $theData     The data that must be written.
+   * @param string $filename The name of the file were the data must be stored.
+   * @param string $data     The data that must be written.
    */
-  public static function writeTwoPhases($theFilename, $theData)
+  public static function writeTwoPhases($filename, $data)
   {
     $write_flag = true;
-    if (file_exists($theFilename))
+    if (file_exists($filename))
     {
-      $old_data = file_get_contents($theFilename);
-      if ($theData==$old_data) $write_flag = false;
+      $old_data = file_get_contents($filename);
+      if ($data==$old_data) $write_flag = false;
     }
     if ($write_flag)
     {
-      $tmp_filename = $theFilename.'.tmp';
-      file_put_contents($tmp_filename, $theData);
-      rename($tmp_filename, $theFilename);
-      echo "Wrote: '", $theFilename, "'.\n";
+      $tmp_filename = $filename.'.tmp';
+      file_put_contents($tmp_filename, $data);
+      rename($tmp_filename, $filename);
+      echo "Wrote: '", $filename, "'.\n";
     }
   }
   //--------------------------------------------------------------------------------------------------------------------

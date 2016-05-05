@@ -24,13 +24,10 @@ foreach ($files as $file)
  */
 function synopsis()
 {
-  echo "Synopsis: pds [-c] <configuration file> [-v] [-d]\n";
+  echo "Synopsis: data_sync [-c] <configuration file> [--dump-master-data] <dump master file>\n";
   echo "\n";
   echo "Options:\n";
-  echo "  -p --prune   : Clear all table list information from config file.\n";
   echo "  -h --help    : Print this help text.\n";
-  echo "  -v --verbose : Print verbose log.\n";
-  echo "  -d --debug   : Print debug log.\n";
 
   exit(1);
 }
@@ -48,26 +45,12 @@ function getSetting($options)
 {
   // skip first key with current file name.
   array_shift($options);
-  $setting['prune']   = false;
-  $setting['debug']   = false;
-  $setting['verbose'] = false;
+  $setting['--dump-master-data'] = false;
 
   while (($param = array_shift($options))!==null)
   {
     switch ($param)
     {
-      case '-p':
-      case '--prune':
-        $setting['prune'] = true;
-        break;
-      case '-d':
-      case '--debug':
-        $setting['debug'] = true;
-        break;
-      case '-v':
-      case '--verbose':
-        $setting['verbose'] = true;
-        break;
       case '-h':
       case '--help':
         synopsis();
@@ -76,6 +59,9 @@ function getSetting($options)
       case '--config':
         $setting['config'] = array_shift($options);
         break;
+      case '--dump-master-data':
+        $setting['dump-master-data'] = array_shift($options);
+        break;
       default:
         synopsis();
         break;
@@ -83,6 +69,7 @@ function getSetting($options)
   }
 
   if (!isset($setting['config'])) synopsis();
+  if (!isset($setting['dump-master-data'])) synopsis();
 
   return $setting;
 }
@@ -120,8 +107,8 @@ if (!function_exists('json_last_error_msg'))
 function main($options)
 {
   // Set error handler.
-  $handler = new ErrorHandler();
-  $handler->register();
+//  $handler = new ErrorHandler();
+//  $handler->register();
 
   $setting = getSetting($options);
 
