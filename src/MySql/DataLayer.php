@@ -25,9 +25,6 @@ class DataLayer
    */
   private static $io;
 
-  // xxx copy execute*, setIo, logQuery methods
-  // xxx look in PhpAudit how to use this class (connect, setIo, ...)
-
   //--------------------------------------------------------------------------------------------------------------------
   /**
    * Connects to a MySQL instance.
