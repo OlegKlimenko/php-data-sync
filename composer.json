@@ -15,7 +15,10 @@
   "require": {
     "monolog/monolog": "^1.18",
     "php": ">=5.4.0",
-    "setbased/php-stratum": "*"
+    "setbased/php-affirm": "*",
+    "setbased/exception": "1.*",
+    "setbased/php-stratum": "*",
+    "ramsey/uuid": "^3.3"
   },
   "autoload": {
     "psr-4": {

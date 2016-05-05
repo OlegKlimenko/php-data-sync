@@ -8,7 +8,7 @@ use SetBased\Stratum\MySql\StaticDataLayer;
  * Supper class for a static stored routine wrapper class.
  */
 class DataLayer extends StaticDataLayer {
-  //------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------
   /**
    * Selects all table names in a schema.
    *
@@ -28,13 +28,31 @@ class DataLayer extends StaticDataLayer {
     return self::executeRows($sql);
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Checks if PK of table is autoincrement.
+   *
+   * @param string $tableName The name of table.
+   *
+   * @return array[]
+   */
+  public static function getAutoIncrementInfo($tableName)
+  {
+    $sql = sprintf("
+    SELECT COLUMN_NAME as column_name
+    FROM information_schema.COLUMNS
+    WHERE TABLE_NAME = %s
+    AND EXTRA like '%%auto_increment%%'", self::quoteString($tableName));
+
+    return self::executeRows($sql);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
   /**
    * Selects primary key of a table in selected schema.
    *
    * @param string $schemaName The name of the schema.
-   *
-   * @param string $tableName The name of a table.
+   * @param string $tableName  The name of a table.
    *
    * @return array[]
    */
@@ -50,13 +68,12 @@ class DataLayer extends StaticDataLayer {
     return self::executeRows($sql);
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------
   /**
    * Selects secondary key of a table in selected schema.
    *
    * @param string $schemaName The name of the schema.
-   *
-   * @param string $tableName The name of a table.
+   * @param string $tableName  The name of a table.
    *
    * @return array[]
    */
@@ -99,13 +116,12 @@ class DataLayer extends StaticDataLayer {
     }
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------
   /**
    * Selects info about primary keys of a table in selected schema.
    *
    * @param string $schemaName The name of the schema.
-   *
-   * @param string $tableName The name of a table.
+   * @param string $tableName  The name of a table.
    *
    * @return array[]
    */
@@ -127,8 +143,9 @@ class DataLayer extends StaticDataLayer {
     {
       $sql = sprintf("
       SELECT COLUMN_NAME AS 'column_name',
-             REFERENCED_TABLE_NAME AS 'ref_table_name',
-             REFERENCED_COLUMN_NAME AS 'ref_column_name'
+      TABLE_NAME AS 'table_name',
+      REFERENCED_TABLE_NAME AS 'ref_table_name',
+      REFERENCED_COLUMN_NAME AS 'ref_column_name'
       FROM information_schema.KEY_COLUMN_USAGE
       WHERE CONSTRAINT_NAME = %s", self::quoteString($constraint_name['constraint_name']));
 
@@ -140,16 +157,51 @@ class DataLayer extends StaticDataLayer {
     return $field_names;
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Selects all rows of data.
+   *
+   * @param string $schemaName The name of the schema.
+   * @param string $tableName  The name of a table.
+   *
+   * @return array[]
+   */
+  public static function selectAllFields($schemaName, $tableName)
+  {
+    $sql = sprintf("SELECT * FROM %s.%s", $schemaName, $tableName);
+    
+    return self::executeRows($sql);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Selects rows of data of certain column name.
+   *
+   * @param string $column     The name of column which we want to select.
+   * @param string $schemaName The name of the schema.
+   * @param string $tableName  The name of a table.
+   *
+   * @return array[]
+   */
+  public static function selectField($column, $schemaName, $tableName)
+  {
+    $sql = sprintf("SELECT %s FROM %s.%s", $column, $schemaName, $tableName);
+
+    return self::executeRows($sql);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
   /**
    * Executes a query that returns 0 or more rows.
    *
-   * @param string $theQuery The SQL statement.
+   * @param string $query The SQL statement.
    *
    * @return array[] The selected rows.
    */
-  public static function executeRows($theQuery)
+  public static function executeRows($query)
   {
-    return parent::executeRows($theQuery);
+    return parent::executeRows($query);
   }
+  // -------------------------------------------------------------------------------------------------------------------
 }
+// ---------------------------------------------------------------------------------------------------------------------
