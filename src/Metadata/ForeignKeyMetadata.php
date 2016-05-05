@@ -10,6 +10,13 @@ class ForeignKeyMetadata
 {
   //--------------------------------------------------------------------------------------------------------------------
   /**
+   * The name of a column.
+   *
+   * @var string
+   */
+  public $column;
+
+  /**
    * The name of a foreign key.
    *
    * @var string
@@ -17,18 +24,11 @@ class ForeignKeyMetadata
   public $foreignKeyName;
 
   /**
-   * The name of a table.
+   * The name of a referenced column in referenced table.
    *
    * @var string
    */
-  public $table;
-
-  /**
-   * The name of a column.
-   *
-   * @var string
-   */
-  public $column;
+  public $refColumn;
 
   /**
    * The name of a referenced table.
@@ -38,11 +38,11 @@ class ForeignKeyMetadata
   public $refTable;
 
   /**
-   * The name of a referenced column in referenced table.
+   * The name of a table.
    *
    * @var string
    */
-  public $refColumn;
+  public $table;
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -57,10 +57,10 @@ class ForeignKeyMetadata
   public function __construct($fkName, $table, $column, $referencedTable, $referencedColumn)
   {
     $this->foreignKeyName = $fkName;
-    $this->table = $table;
-    $this->column = $column;
-    $this->refTable = $referencedTable;
-    $this->refColumn = $referencedColumn;
+    $this->table          = $table;
+    $this->column         = $column;
+    $this->refTable       = $referencedTable;
+    $this->refColumn      = $referencedColumn;
   }
 
   // -------------------------------------------------------------------------------------------------------------------

@@ -151,15 +151,13 @@ class TableMetadata
     $this->foreignKeys = [];
     foreach ($foreignKeys as $foreign_key)
     {
-
       foreach ($foreign_key as $col_names)
       {
-        $fk = new ForeignKeyMetadata($col_names['constraint_name'],
-                                     $col_names['table_name'],
-                                     $col_names['column_name'],
-                                     $col_names['ref_table_name'],
-                                     $col_names['ref_column_name']);
-        $this->foreignKeys[] = $fk;
+        $this->foreignKeys[] = new ForeignKeyMetadata($col_names['constraint_name'],
+                                                      $col_names['table_name'],
+                                                      $col_names['column_name'],
+                                                      $col_names['ref_table_name'],
+                                                      $col_names['ref_column_name']);
       }
     }
   }
