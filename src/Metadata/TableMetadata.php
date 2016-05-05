@@ -1,15 +1,16 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
-namespace SetBased\DataSync\Meta;
+namespace SetBased\DataSync\Metadata;
 
 use SetBased\DataSync\MySql\DataLayer;
+
 //----------------------------------------------------------------------------------------------------------------------
 /**
  * Class for table in metadata.
  */
-class MetaTable
+class TableMetadata
 {
-  // -------------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------------
   /**
    * The name of a table.
    *
@@ -58,47 +59,6 @@ class MetaTable
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * @return string
-   */
-  public function getTableName()
-  {
-    return $this->tableName;
-  }
-
-  /**
-   * @return array[]
-   */
-  public function getPrimaryKey()
-  {
-    return $this->primaryKey;
-  }
-
-  /**
-   * @return bool
-   */
-  public function getAutoincrement()
-  {
-    return $this->is_autoincrement;
-  }
-
-  /**
-   * @return array[]
-   */
-  public function getSecondaryKey()
-  {
-    return $this->secondaryKey;
-  }
-
-  /**
-   * @return array[]
-   */
-  public function getForeignKeys()
-  {
-    return $this->foreignKeys;
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
    * Sets the primary key to a table.
    *
    * @param DataLayer $dataLayer The datalayer.
@@ -140,7 +100,7 @@ class MetaTable
     $secondary_keys = $dataLayer::getTableSecondaryKey($data['database']['data_schema'], $this->tableName);
     if (!empty($secondary_keys))
     {
-      $secondary_keys = self::getColumnNames($secondary_keys[0]);
+      $secondary_keys     = self::getColumnNames($secondary_keys[0]);
       $this->secondaryKey = $secondary_keys[0];
     }
   }
@@ -172,10 +132,11 @@ class MetaTable
   private function getColumnNames($list)
   {
     $list_names = [];
-    foreach($list as $name)
+    foreach ($list as $name)
     {
       $list_names[] = $name['column_name'];
     }
+
     return $list_names;
   }
 
@@ -188,25 +149,23 @@ class MetaTable
   private function setFkNames($foreignKeys)
   {
     $this->foreignKeys = [];
-    foreach($foreignKeys as $foreign_key)
+    foreach ($foreignKeys as $foreign_key)
     {
 
-      foreach($foreign_key as $col_names)
+      foreach ($foreign_key as $col_names)
       {
-        $fk = [];
-
-        $fk['table'] = $col_names['table_name'];
-        $fk['column'] = $col_names['column_name'];
-        $fk['ref_table'] = $col_names['ref_table_name'];
-        $fk['ref_column'] = $col_names['ref_column_name'];
-
-        $this->foreignKeys[$col_names['constraint_name']] = $fk;
+        $fk = new ForeignKeyMetadata($col_names['constraint_name'],
+                                     $col_names['table_name'],
+                                     $col_names['column_name'],
+                                     $col_names['ref_table_name'],
+                                     $col_names['ref_column_name']);
+        $this->foreignKeys[] = $fk;
       }
     }
   }
 
   // -------------------------------------------------------------------------------------------------------------------
-  
+
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
