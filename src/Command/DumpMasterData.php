@@ -117,14 +117,15 @@ class DumpMasterData
         {
           // Every field have Additional value for setting new ID. If it is set, we use it.
           // Otherwise use its own value.
-          if (!$field->additionalValue)
-          {
-            $this->dumpedData[$table_name][$record_name][$field_name] = $field->fieldValue;
-          }
-          else
-          {
-            $this->dumpedData[$table_name][$record_name][$field_name] = $field->additionalValue;
-          }
+//          if (!$field->additionalValue)
+//          {
+//            $this->dumpedData[$table_name][$record_name][$field_name] = $field->fieldValue;
+//          }
+//          else
+//          {
+//            $this->dumpedData[$table_name][$record_name][$field_name] = $field->additionalValue;
+//          }
+          $this->dumpedData[$table_name][$record_name][$field_name] = $field->fieldValue;
         }
       }
     }

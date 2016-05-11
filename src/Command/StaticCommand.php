@@ -7,7 +7,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 
 //----------------------------------------------------------------------------------------------------------------------
 /**
- * Base command for other commands of PhpStratum.
+ * Class StaticCommand for actions which we can made in different parts of code.
  */
 class StaticCommand
 {

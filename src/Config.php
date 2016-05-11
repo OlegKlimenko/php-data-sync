@@ -61,20 +61,10 @@ class Config
    * Reads configuration file. Stores data of config file in class attribute.
    *
    * @param string $configFileName
-   *
-   * @throws RuntimeException
    */
   public function readConfigFile($configFileName)
   {
     $this->data = json_decode(file_get_contents($configFileName), true);
-    if (!$this->data)
-    {
-      throw new RuntimeException('Unable to read file "%s"', $configFileName);
-    }
-    else
-    {
-      $this->fileName = $configFileName;
-    }
   }
 
   //--------------------------------------------------------------------------------------------------------------------
