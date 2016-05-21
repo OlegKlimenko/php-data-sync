@@ -22,7 +22,7 @@ class Table
    * @var array
    */
   public $records;
-  
+
   //--------------------------------------------------------------------------------------------------------------------
   /**
    * Object constructor.
@@ -34,12 +34,12 @@ class Table
   {
     $this->tableName = $tableName;
 
-    foreach($records as $record_num => $record)
+    foreach ($records as $record_num => $record)
     {
       $this->records[] = new Record($record);
     }
   }
-  
+
   // -------------------------------------------------------------------------------------------------------------------
 
 }

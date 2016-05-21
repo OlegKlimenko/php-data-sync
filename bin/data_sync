@@ -1,7 +1,8 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
+
 use SetBased\Affirm\ErrorHandler;
-use SetBased\DataSync\DataSync;
+use SetBased\DataSync\Application\DataSync;
 
 //----------------------------------------------------------------------------------------------------------------------
 $files = [__DIR__.'/../vendor/autoload.php',
@@ -16,62 +17,6 @@ foreach ($files as $file)
     require $file;
     break;
   }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-/**
- * Prints the synopsis of this program and terminates this program.
- */
-function synopsis()
-{
-  echo "Synopsis: data_sync [-c] <configuration file> [--dump-master-data] <dump master file>\n";
-  echo "\n";
-  echo "Options:\n";
-  echo "  -h --help    : Print this help text.\n";
-
-  exit(1);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-/**
- * Parses the arguments of this program.
- *
- * @param array $options The arguments of this programs (i.e. $argv).
- *
- * @return array The parameters.
- * @throws Exception
- */
-function getSetting($options)
-{
-  // skip first key with current file name.
-  array_shift($options);
-  $setting['--dump-master-data'] = false;
-
-  while (($param = array_shift($options))!==null)
-  {
-    switch ($param)
-    {
-      case '-h':
-      case '--help':
-        synopsis();
-        break;
-      case '-c':
-      case '--config':
-        $setting['config'] = array_shift($options);
-        break;
-      case '--dump-master-data':
-        $setting['dump-master-data'] = array_shift($options);
-        break;
-      default:
-        synopsis();
-        break;
-    }
-  }
-
-  if (!isset($setting['config'])) synopsis();
-  if (!isset($setting['dump-master-data'])) synopsis();
-
-  return $setting;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -99,27 +44,9 @@ if (!function_exists('json_last_error_msg'))
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-/**
- * Starts the execution of this program.
- *
- * @param array $options The arguments of this program (i.e. $argv).
- */
-function main($options)
-{
-  // Set error handler.
-//  $handler = new ErrorHandler();
-//  $handler->register();
+// Set error handler.
+$handler = new ErrorHandler();
+$handler->register();
 
-  $setting = getSetting($options);
-
-  $php_data_sync = new DataSync();
-
-  $main_exec_status = $php_data_sync->main($setting);
-
-  if ($main_exec_status!=0) exit($main_exec_status);
-
-  exit(0);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-main($argv);
+$application = new DataSync();
+$application->run();
