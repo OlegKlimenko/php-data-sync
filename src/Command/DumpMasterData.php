@@ -53,6 +53,13 @@ class DumpMasterData
    */
   private $dumpedData;
 
+  /**
+   * The data with unique ID info.
+   *
+   * @var array[]
+   */
+  private $uuidData;
+
   //--------------------------------------------------------------------------------------------------------------------
   /**
    * Object constructor.
@@ -82,6 +89,12 @@ class DumpMasterData
     $this->dump();
 
     StaticCommand::writeTwoPhases($dumpFileName, json_encode($this->dumpedData, JSON_PRETTY_PRINT), $this->io);
+
+    $f_name = explode('.', $dumpFileName);
+    $f_name[0] = $f_name[0]."-id";
+    $uuid_filename = implode('.', $f_name);
+
+    StaticCommand::writeTwoPhases($uuid_filename, json_encode($this->uuidData, JSON_PRETTY_PRINT), $this->io);
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -105,7 +118,7 @@ class DumpMasterData
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Dumps the data
+   * Dumps the data and creates a lookup table for UUID's.
    */
   private function dump()
   {
@@ -115,17 +128,18 @@ class DumpMasterData
       {
         foreach ($this->tableList[$table_name]->records[$record_name]->fields as $field_name => $field)
         {
-          // Every field have Additional value for setting new ID. If it is set, we use it.
-          // Otherwise use its own value.
-//          if (!$field->additionalValue)
-//          {
-//            $this->dumpedData[$table_name][$record_name][$field_name] = $field->fieldValue;
-//          }
-//          else
-//          {
-//            $this->dumpedData[$table_name][$record_name][$field_name] = $field->additionalValue;
-//          }
+          // Dump whole data.
           $this->dumpedData[$table_name][$record_name][$field_name] = $field->fieldValue;
+
+          $pk_is_autoincrement = $this->config->data['metadata'][$table_name]['primary_autoincrement'];
+          $pk_field_name = $this->config->data['metadata'][$table_name]['primary_key'][0];
+
+          // Dump UUID's
+          if ($pk_is_autoincrement and $pk_field_name == $field->fieldName)
+          {
+            $this->uuidData[$table_name][$record_name] = [$field->additionalValue, $field->fieldValue];
+
+          }
         }
       }
     }
