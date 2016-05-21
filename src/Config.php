@@ -2,8 +2,12 @@
 //----------------------------------------------------------------------------------------------------------------------
 namespace SetBased\DataSync;
 
-use SetBased\DataSync\Meta\Metadata;
+
+use SetBased\DataSync\Command\StaticCommand;
+use SetBased\DataSync\Metadata\Metadata;
 use SetBased\Exception\RuntimeException;
+use SetBased\Stratum\Style\StratumStyle;
+
 //----------------------------------------------------------------------------------------------------------------------
 /**
  * Class for manipulating and storing config info.
@@ -11,6 +15,13 @@ use SetBased\Exception\RuntimeException;
 class Config
 {
   // -------------------------------------------------------------------------------------------------------------------
+  /**
+   * The output decorator
+   *
+   * @var StratumStyle
+   */
+  private $io;
+
   /**
    * Config file name.
    *
@@ -27,7 +38,7 @@ class Config
 
   /**
    * The metadata of config file.
-   * 
+   *
    * @var Metadata
    */
   public $metadata;
@@ -36,10 +47,12 @@ class Config
   /**
    * Object constructor.
    *
-   * @param string $configFileName The config filename.
+   * @param string       $configFileName The config filename.
+   * @param StratumStyle $io             The output decorator.
    */
-  public function __construct($configFileName)
+  public function __construct($configFileName, $io)
   {
+    $this->io = $io;
     $this->readConfigFile($configFileName);
   }
 
@@ -86,7 +99,7 @@ class Config
     $this->data['metadata'] = $this->metadata->insertMetadata();
 
     // Write into config file.
-    Util::writeTwoPhases($this->fileName, json_encode($this->data, JSON_PRETTY_PRINT));
+    StaticCommand::writeTwoPhases($this->fileName, json_encode($this->data, JSON_PRETTY_PRINT), $this->io);
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -107,6 +120,6 @@ class Config
     }
   }
   // -------------------------------------------------------------------------------------------------------------------
-  
+
 }
 // ---------------------------------------------------------------------------------------------------------------------

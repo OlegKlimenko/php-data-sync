@@ -23,7 +23,7 @@ class Record
    */
   public function __construct($record)
   {
-    foreach($record as $field_name => $field_value)
+    foreach ($record as $field_name => $field_value)
     {
       $this->fields[$field_name] = new Field($field_name, $field_value);
     }

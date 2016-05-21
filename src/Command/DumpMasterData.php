@@ -5,11 +5,11 @@ namespace SetBased\DataSync\Command;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Ramsey\Uuid\Uuid;
 use SetBased\DataSync\Config;
-use SetBased\DataSync\Util;
-use SetBased\DataSync\Meta;
 use SetBased\DataSync\DBObjects\Table;
+use SetBased\DataSync\Metadata;
 use SetBased\DataSync\MySql\DataLayer;
 use SetBased\Exception\RuntimeException;
+use SetBased\Stratum\Style\StratumStyle;
 
 //----------------------------------------------------------------------------------------------------------------------
 /**
@@ -18,6 +18,13 @@ use SetBased\Exception\RuntimeException;
 class DumpMasterData
 {
   //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * The output decorator
+   *
+   * @var StratumStyle
+   */
+  private $io;
+
   /**
    * Config file object.
    *
@@ -52,10 +59,12 @@ class DumpMasterData
    *
    * @param Config    $config    The config file object.
    * @param DataLayer $dataLayer The data layer.
+   * @param StratumStyle $io             The output decorator.
    */
-  public function __construct($config, $dataLayer)
+  public function __construct($config, $dataLayer, $io)
   {
-    $this->config = $config;
+    $this->io        = $io;
+    $this->config    = $config;
     $this->dataLayer = $dataLayer;
   }
 
@@ -72,7 +81,7 @@ class DumpMasterData
 
     $this->dump();
 
-    Util::writeTwoPhases($dumpFileName, json_encode($this->dumpedData, JSON_PRETTY_PRINT));
+    StaticCommand::writeTwoPhases($dumpFileName, json_encode($this->dumpedData, JSON_PRETTY_PRINT), $this->io);
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -100,11 +109,11 @@ class DumpMasterData
    */
   private function dump()
   {
-    foreach($this->tableList as $table_name => $table)
+    foreach ($this->tableList as $table_name => $table)
     {
-      foreach($this->tableList[$table_name]->records as $record_name => $record)
+      foreach ($this->tableList[$table_name]->records as $record_name => $record)
       {
-        foreach($this->tableList[$table_name]->records[$record_name]->fields as $field_name => $field)
+        foreach ($this->tableList[$table_name]->records[$record_name]->fields as $field_name => $field)
         {
           // Every field have Additional value for setting new ID. If it is set, we use it.
           // Otherwise use its own value.
@@ -150,7 +159,7 @@ class DumpMasterData
     $pk_rows = [];
     foreach ($this->config->metadata->tableList as $table_name => $table)
     {
-      foreach ($table->getPrimaryKey() as $key => $value)
+      foreach ($table->primaryKey as $key => $value)
       {
         $pk_rows[] = $this->dataLayer->selectField($value, $this->config->data['database']['data_schema'], $table_name);
       }
@@ -199,6 +208,7 @@ class DumpMasterData
     try
     {
       $uuid = (string)Uuid::uuid4();
+
       return $uuid;
     }
     catch (UnsatisfiedDependencyException $e)
@@ -217,15 +227,15 @@ class DumpMasterData
   private function changePkValues($item, $uuid)
   {
     // Set new ID's to referenced keys.
-    foreach($this->config->metadata->tableList as $table_name => $metatable)
+    foreach ($this->config->metadata->tableList as $table_name => $metatable)
     {
       if (is_array($metatable->foreignKeys))
       {
-        foreach($metatable->foreignKeys as $fk_name => $fk_data)
+        foreach ($metatable->foreignKeys as $fk_name => $fk_data)
         {
-          if ($item[0] == $fk_data['ref_column'])
+          if ($item[0] == $fk_data['refColumn'])
           {
-            $this->changeRefValues('ref_', $fk_data, $item, $uuid);
+            $this->changeRefValues('ref', $fk_data, $item, $uuid);
             $this->changeRefValues('', $fk_data, $item, $uuid);
           }
         }
@@ -244,12 +254,21 @@ class DumpMasterData
    */
   private function changeRefValues($state, $fk_data, $item, $uuid)
   {
-    $table = $state.'table';
-    $column = $state.'column';
-
-    foreach($this->tableList[$fk_data[$table]]->records as $record_name => $record)
+    if ($state == 'ref')
     {
-      foreach($record->fields as $field_name => $field)
+      $table  = $state.'Table';
+      $column = $state.'Column';
+    }
+    else
+    {
+      $table  = $state.'table';
+      $column = $state.'column';
+    }
+
+
+    foreach ($this->tableList[$fk_data[$table]]->records as $record_name => $record)
+    {
+      foreach ($record->fields as $field_name => $field)
       {
         if ($item[1] == $record->fields[$fk_data[$column]]->fieldValue)
         {
@@ -262,7 +281,7 @@ class DumpMasterData
       }
     }
   }
-  
+
   // -------------------------------------------------------------------------------------------------------------------
 }
 

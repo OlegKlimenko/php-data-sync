@@ -9,8 +9,8 @@ namespace SetBased\DataSync\DBObjects;
 class Field
 {
   /**
-   * The name of a field.
-   * 
+   * The name of this column.
+   *
    * @var string
    */
   public $fieldName;
@@ -38,7 +38,7 @@ class Field
    */
   public function __construct($fieldName, $fieldValue)
   {
-    $this->fieldName = $fieldName;
+    $this->fieldName  = $fieldName;
     $this->fieldValue = $fieldValue;
   }
 

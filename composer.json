@@ -18,7 +18,8 @@
     "setbased/php-affirm": "*",
     "setbased/exception": "1.*",
     "setbased/php-stratum": "*",
-    "ramsey/uuid": "^3.3"
+    "ramsey/uuid": "^3.3",
+    "symfony/console": "3.0.4"
   },
   "autoload": {
     "psr-4": {
