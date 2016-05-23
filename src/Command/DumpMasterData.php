@@ -5,7 +5,6 @@ namespace SetBased\DataSync\Command;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Ramsey\Uuid\Uuid;
 use SetBased\DataSync\Config;
-use SetBased\DataSync\DBObjects\Table;
 use SetBased\DataSync\Metadata;
 use SetBased\DataSync\MySql\DataLayer;
 use SetBased\Exception\RuntimeException;
@@ -109,7 +108,14 @@ class DumpMasterData
       // Select each row of a table.
       $rows = $this->dataLayer->selectAllFields($this->config->data['database']['data_schema'], $table_name);
 
-      $this->tableList[$table_name] = new Table($table_name, $rows);
+      foreach($rows as $record_name => $record)
+      {
+        foreach($record as $field_name => $field_value)
+        {
+          $this->tableList[$table_name][$record_name][$field_name]['field_value'] = $field_value;
+          $this->tableList[$table_name][$record_name][$field_name]['additional_value'] = null;
+        }
+      }
     }
 
     // Set new id's for PK values
@@ -124,21 +130,20 @@ class DumpMasterData
   {
     foreach ($this->tableList as $table_name => $table)
     {
-      foreach ($this->tableList[$table_name]->records as $record_name => $record)
+      foreach ($this->tableList[$table_name] as $record_name => $record)
       {
-        foreach ($this->tableList[$table_name]->records[$record_name]->fields as $field_name => $field)
+        foreach ($this->tableList[$table_name][$record_name] as $field_name => $field)
         {
           // Dump whole data.
-          $this->dumpedData[$table_name][$record_name][$field_name] = $field->fieldValue;
+          $this->dumpedData[$table_name][$record_name][$field_name] = $field['field_value'];
 
           $pk_is_autoincrement = $this->config->data['metadata'][$table_name]['primary_autoincrement'];
           $pk_field_name = $this->config->data['metadata'][$table_name]['primary_key'][0];
 
           // Dump UUID's
-          if ($pk_is_autoincrement and $pk_field_name == $field->fieldName)
+          if ($pk_is_autoincrement and $pk_field_name == $field_name)
           {
-            $this->uuidData[$table_name][$record_name] = [$field->additionalValue, $field->fieldValue];
-
+            $this->uuidData[$table_name][$record_name] = [$field['additional_value'], $field['field_value']];
           }
         }
       }
@@ -280,18 +285,13 @@ class DumpMasterData
       $column = $state.'column';
     }
 
-
-    foreach ($this->tableList[$fk_data[$table]]->records as $record_name => $record)
+    foreach ($this->tableList[$fk_data[$table]] as $record_name => $record)
     {
-      foreach ($record->fields as $field_name => $field)
+      foreach ($record as $field_name => $field)
       {
-        if ($item[1] == $record->fields[$fk_data[$column]]->fieldValue)
+        if ($item[1] == $record[$fk_data[$column]]['field_value'] and !$record[$fk_data[$column]]['additional_value'])
         {
-          if (!$record->fields[$fk_data[$column]]->additionalValue)
-          {
-            $tmp = $this->tableList[$fk_data[$table]]->records[$record_name]->fields[$fk_data[$column]];
-            $tmp->additionalValue = $uuid;
-          }
+          $this->tableList[$fk_data[$table]][$record_name][$fk_data[$column]]['additional_value'] = $uuid;
         }
       }
     }
