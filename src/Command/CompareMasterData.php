@@ -3,8 +3,6 @@
 namespace SetBased\DataSync\Command;
 
 use SetBased\DataSync\Config;
-use SetBased\DataSync\DBObjects\Record;
-use SetBased\DataSync\DBObjects\Table;
 use SetBased\Stratum\Style\StratumStyle;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 
@@ -103,11 +101,8 @@ class CompareMasterData
     $remote_file_data = $this->readFile($remoteFilename);
     $local_file_data = $this->readFile($localFilename);
 
-    foreach($this->config->data['metadata'] as $table_name => $table_data)
-    {
-      $this->remoteFileData[$table_name] = new Table($table_name, $remote_file_data[$table_name]);
-      $this->localFileData[$table_name] = new Table($table_name, $local_file_data[$table_name]);
-    }
+    $this->remoteFileData = $remote_file_data;
+    $this->localFileData = $local_file_data;
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -129,26 +124,26 @@ class CompareMasterData
   /**
    * Passes over records in table, checks passed secondary keys and changes if we have secondary key.
    *
-   * @param array  $tableData The array with data of config file.
-   * @param string $tableName The name of a table in which we want to find changes.
+   * @param array  $tableMetadata The array with metadata.
+   * @param string $tableName     The name of a table in which we want to find changes.
    *
    * @return array
    */
-  private function getChangesWithSecondaryKey($tableData, $tableName)
+  private function getChangesWithSecondaryKey($tableMetadata, $tableName)
   {
-    $secondary_key = $tableData['secondary_key'][0];
+    $secondary_key = $tableMetadata['secondary_key'][0];
     $passed_secondary_keys = [];
 
     // Compare secondary keys of two records. If they are equals store name of secondary key list and got to
     // check changes method.
-    foreach($this->remoteFileData[$tableName]->records as $remote_record)
+    foreach($this->remoteFileData[$tableName] as $remote_record)
     {
-      foreach($this->localFileData[$tableName]->records as $local_record)
+      foreach($this->localFileData[$tableName] as $local_record)
       {
-        if ($remote_record->fields[$secondary_key]->fieldValue == $local_record->fields[$secondary_key]->fieldValue)
+        if ($remote_record[$secondary_key] == $local_record[$secondary_key])
         {
-          $this->checkChanges($tableData['primary_key'], $remote_record, $local_record);
-          $passed_secondary_keys[] = $remote_record->fields[$secondary_key]->fieldValue;
+          $this->checkChanges($tableMetadata['primary_key'], $remote_record, $local_record);
+          $passed_secondary_keys[] = $remote_record[$secondary_key];
         }
       }
     }
@@ -159,24 +154,24 @@ class CompareMasterData
   /**
    * Passes over records in table, checks passed primary keys and changes if we don't have a secondary key.
    *
-   * @param array  $tableData The array with data of config file.
-   * @param string $tableName The name of a table in which we want to find changes.
+   * @param array  $tableMetadata The array with metadata.
+   * @param string $tableName     The name of a table in which we want to find changes.
    *
    * @return array
    */
-  private function getChangesWithoutSecondaryKey($tableData, $tableName)
+  private function getChangesWithoutSecondaryKey($tableMetadata, $tableName)
   {
     $passed_primary_keys = [];
 
-    foreach($this->remoteFileData[$tableName]->records as $remote_record)
+    foreach($this->remoteFileData[$tableName] as $remote_record)
     {
-      foreach($this->localFileData[$tableName]->records as $local_record)
+      foreach($this->localFileData[$tableName] as $local_record)
       {
         // Pass over each primary key, because primary key can be complex.
         $pk_equality = true;
-        foreach($tableData['primary_key'] as $primary_key)
+        foreach($tableMetadata['primary_key'] as $primary_key)
         {
-          if ($remote_record->fields[$primary_key]->fieldValue != $local_record->fields[$primary_key]->fieldValue)
+          if ($remote_record[$primary_key] != $local_record[$primary_key])
           {
             $pk_equality = false;
           }
@@ -184,13 +179,13 @@ class CompareMasterData
 
         if ($pk_equality)
         {
-          $this->checkChanges($tableData['primary_key'], $remote_record, $local_record);
+          $this->checkChanges($tableMetadata['primary_key'], $remote_record, $local_record);
           $primary = [];
 
           // Generate and store primary key, because PK can be complex.
-          foreach ($tableData['primary_key'] as $primary_key)
+          foreach ($tableMetadata['primary_key'] as $primary_key)
           {
-            $primary[] = $remote_record->fields[$primary_key]->fieldValue;
+            $primary[] = $remote_record[$primary_key];
           }
           $passed_primary_keys[] = $primary;
         }
@@ -204,17 +199,17 @@ class CompareMasterData
    * Passes over fields in record and checks changes.
    *
    * @param array  $primaryKey
-   * @param Record $remoteRecord
-   * @param Record $localRecord
+   * @param array $remoteRecord
+   * @param array $localRecord
    */
   private function checkChanges($primaryKey, $remoteRecord, $localRecord)
   {
     $is_changed = false;
 
     // Pass over each field of two records. And check if we have changes.
-    foreach($remoteRecord->fields as $field_name => $remote_field)
+    foreach($remoteRecord as $field_name => $remote_field)
     {
-      if ($remoteRecord->fields[$field_name] != $localRecord->fields[$field_name]
+      if ($remoteRecord[$field_name] != $localRecord[$field_name]
           and !in_array($field_name, $primaryKey))
       {
         $is_changed = true;
@@ -233,17 +228,17 @@ class CompareMasterData
    * goes to write added record.
    *
    * @param array  $existingSecondaryKeys The list of existing secondary keys.
-   * @param array  $tableData             Data about table, exist metadata.
+   * @param array  $tableMetadata         The metadata of a table.
    * @param string $tableName             The name of a table which we passing.
    */
-  private function getAddingsWithSecondaryKey($existingSecondaryKeys, $tableData, $tableName)
+  private function getAddingsWithSecondaryKey($existingSecondaryKeys, $tableMetadata, $tableName)
   {
-    $secondary_key = $tableData['secondary_key'][0];
+    $secondary_key = $tableMetadata['secondary_key'][0];
     $existing_secondary_keys = $existingSecondaryKeys;
 
-    foreach($this->remoteFileData[$tableName]->records as $remote_record)
+    foreach($this->remoteFileData[$tableName] as $remote_record)
     {
-      if (!in_array($remote_record->fields[$secondary_key]->fieldValue, $existing_secondary_keys))
+      if (!in_array($remote_record[$secondary_key], $existing_secondary_keys))
       {
         $this->writeAddings($remote_record);
       }
@@ -256,20 +251,20 @@ class CompareMasterData
    * goes to write added record.
    *
    * @param array  $existingPrimaryKeys The list of existing primary keys.
-   * @param array  $tableData           Data about table, exist metadata.
+   * @param array  $tableMetadata       The metadata about table.
    * @param string $tableName           The name of a table which we passing.
    */
-  private function getAddingsWithoutSecondaryKey($existingPrimaryKeys, $tableData, $tableName)
+  private function getAddingsWithoutSecondaryKey($existingPrimaryKeys, $tableMetadata, $tableName)
   {
     // Pass over records.
-    foreach($this->remoteFileData[$tableName]->records as $remote_record)
+    foreach($this->remoteFileData[$tableName] as $remote_record)
     {
       $primary_keys = [];
 
       // Pass over columns of a primary key. And generate a primary key of separate columns of PK.
-      foreach($tableData['primary_key'] as $primary_key)
+      foreach($tableMetadata['primary_key'] as $primary_key)
       {
-        $primary_keys[] = $remote_record->fields[$primary_key]->fieldValue;
+        $primary_keys[] = $remote_record[$primary_key];
       }
 
       // Check if array with existing primary keys, have this primary key. If not, we write added record.
@@ -286,20 +281,20 @@ class CompareMasterData
    * remote records changes 'is_exists' flag to true. If flag stays at false, we don't have this record in remote file,
    * so outputs info about deletions.
    *
-   * @param array  $tableData Data about table, exist metadata.
-   * @param string $tableName The name of a table which we passing.
+   * @param array  $tableMetadata The metadata of a table.
+   * @param string $tableName     The name of a table which we passing.
    */
-  private function getDeletionsWithSecondaryKey($tableData, $tableName)
+  private function getDeletionsWithSecondaryKey($tableMetadata, $tableName)
   {
-    $secondary_key = $tableData['secondary_key'][0];
+    $secondary_key = $tableMetadata['secondary_key'][0];
 
-    foreach($this->localFileData[$tableName]->records as $local_record)
+    foreach($this->localFileData[$tableName] as $local_record)
     {
       $is_exists = false;
-      foreach($this->remoteFileData[$tableName]->records as $remote_record)
+      foreach($this->remoteFileData[$tableName] as $remote_record)
       {
         // If secondary keys are equals, so record is exists, we continue passing
-        if ($remote_record->fields[$secondary_key]->fieldValue == $local_record->fields[$secondary_key]->fieldValue)
+        if ($remote_record[$secondary_key] == $local_record[$secondary_key])
         {
           $is_exists = true;
         }
@@ -319,24 +314,24 @@ class CompareMasterData
    * remote records, changes 'is_exists' flag to true. If flag stays at false, we don't have this record in remote file,
    * so outputs info about deletions.
    *
-   * @param array  $tableData Data about table, exist metadata.
-   * @param string $tableName The name of a table which we passing.
+   * @param array  $tableMetadata The metadata of a table.
+   * @param string $tableName     The name of a table which we passing.
    */
-  private function getDeletionsWithoutSecondaryKey($tableData, $tableName)
+  private function getDeletionsWithoutSecondaryKey($tableMetadata, $tableName)
   {
-    foreach($this->localFileData[$tableName]->records as $local_record)
+    foreach($this->localFileData[$tableName] as $local_record)
     {
       $is_exists = false;
-      foreach($this->remoteFileData[$tableName]->records as $remote_record)
+      foreach($this->remoteFileData[$tableName] as $remote_record)
       {
         $local_pk = [];
         $remote_pk = [];
 
         // Generating list of columns from primary keys for future check on equality.
-        foreach ($tableData['primary_key'] as $primary_key)
+        foreach ($tableMetadata['primary_key'] as $primary_key)
         {
-          $local_pk[] = $local_record->fields[$primary_key]->fieldValue;
-          $remote_pk[] = $remote_record->fields[$primary_key]->fieldValue;
+          $local_pk[] = $local_record[$primary_key];
+          $remote_pk[] = $remote_record[$primary_key];
         }
 
         // If primary keys are equals, so record is exists, we continue passing
@@ -358,16 +353,16 @@ class CompareMasterData
   /**
    * Outputs the info aboute changed columns in record.
    *
-   * @param Record $remoteRecord
+   * @param array $remoteRecord
    */
   private function writeChanges($remoteRecord)
   {
     $this->io->text(sprintf('<note>%s</note>', OutputFormatter::escape('Updated:')));
     $output = "(";
 
-    foreach($remoteRecord->fields as $field_name => $remote_field)
+    foreach($remoteRecord as $field_name => $remote_field)
     {
-      $output = $output." {$remote_field->fieldValue},";
+      $output = $output." {$remote_field},";
     }
 
     $output = rtrim($output, ", ");
@@ -379,16 +374,16 @@ class CompareMasterData
   /**
    * Outputs information about added records.
    *
-   * @param Record $remoteRecord
+   * @param array $remoteRecord
    */
   private function writeAddings($remoteRecord)
   {
     $this->io->text(sprintf('<fso>%s</fso>', OutputFormatter::escape('Inserted:')));
     $output = "(";
 
-    foreach($remoteRecord->fields as $field_name => $remote_field)
+    foreach($remoteRecord as $field_name => $remote_field)
     {
-      $output = $output." {$remote_field->fieldValue},";
+      $output = $output." {$remote_field},";
     }
 
     $output = rtrim($output, ", ");
@@ -407,9 +402,9 @@ class CompareMasterData
     $this->io->text(sprintf('<sql>%s</sql>', OutputFormatter::escape('Deleted:')));
     $output = "(";
 
-    foreach($record->fields as $field_name => $field)
+    foreach($record as $field_name => $field)
     {
-      $output = $output." {$field->fieldValue},";
+      $output = $output." {$field},";
     }
 
     $output = rtrim($output, ", ");
