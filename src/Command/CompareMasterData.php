@@ -358,8 +358,8 @@ class CompareMasterData
   private function outputInfo($record, $action)
   {
     if ($action == 'change') { $this->io->text(sprintf('<note>%s</note>', OutputFormatter::escape('Updated:'))); }
-    if ($action == 'add') { $this->io->text(sprintf('<fso>%s</fso>', OutputFormatter::escape('Inserted:'))); }
-    if ($action == 'delete') { $this->io->text(sprintf('<sql>%s</sql>', OutputFormatter::escape('Deleted:'))); }
+    else if ($action == 'add') { $this->io->text(sprintf('<fso>%s</fso>', OutputFormatter::escape('Inserted:'))); }
+    else if ($action == 'delete') { $this->io->text(sprintf('<sql>%s</sql>', OutputFormatter::escape('Deleted:'))); }
 
     $output = "(";
 
