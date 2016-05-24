@@ -2,6 +2,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 namespace SetBased\DataSync\Application;
 
+use SetBased\DataSync\Command\CompareCommand;
 use SetBased\DataSync\Command\DumpDataCommand;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
@@ -24,6 +25,7 @@ class DataSync extends Application
     $defaultCommands = parent::getDefaultCommands();
 
     $this->add(new DumpDataCommand());
+    $this->add(new CompareCommand());
 
     return $defaultCommands;
   }
