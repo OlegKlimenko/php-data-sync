@@ -64,7 +64,7 @@ class Config
    */
   public function readConfigFile($configFileName)
   {
-    $this->data = json_decode(file_get_contents($configFileName), true);
+    $this->data = (array)json_decode(file_get_contents($configFileName), true);
     $this->fileName = $configFileName;
   }
 

@@ -141,7 +141,7 @@ class DumpMasterData
           $pk_field_name = $this->config->data['metadata'][$table_name]['primary_key'][0];
 
           // Dump UUID's
-          if ($pk_is_autoincrement and $pk_field_name == $field_name)
+          if ($pk_is_autoincrement && $pk_field_name == $field_name)
           {
             $this->uuidData[$table_name][$record_name] = [$field['additional_value'], $field['field_value']];
           }
@@ -289,7 +289,7 @@ class DumpMasterData
     {
       foreach ($record as $field_name => $field)
       {
-        if ($item[1] == $record[$fk_data[$column]]['field_value'] and !$record[$fk_data[$column]]['additional_value'])
+        if ($item[1] == $record[$fk_data[$column]]['field_value'] && !$record[$fk_data[$column]]['additional_value'])
         {
           $this->tableList[$fk_data[$table]][$record_name][$fk_data[$column]]['additional_value'] = $uuid;
         }
