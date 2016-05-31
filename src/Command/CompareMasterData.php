@@ -68,24 +68,31 @@ class CompareMasterData
     // Passing over each table listed in metadata.
     foreach($this->config->data['metadata'] as $table_name => $table_data)
     {
-      $this->io->text(sprintf('<info>#### %s ####</info>', OutputFormatter::escape($table_name)));
-
-      // If table have secondary key, use it.
-      if ($table_data['secondary_key'])
+      if (!array_key_exists($table_name, $this->remoteFileData))
       {
-        $existing_secondary_keys = $this->getChangesWithSecondaryKey($table_data, $table_name);
-        $this->getAddingsWithSecondaryKey($existing_secondary_keys, $table_data, $table_name);
-        $this->getDeletionsWithSecondaryKey($table_data, $table_name);
+        $this->io->text(sprintf("remote file didn't have <sql>%s</sql> table!!", OutputFormatter::escape($table_name)));
       }
-      // If we don't have secondary key use primary key.
       else
       {
-        $existing_primary_keys = $this->getChangesWithoutSecondaryKey($table_data, $table_name);
-        $this->getAddingsWithoutSecondaryKey($existing_primary_keys, $table_data, $table_name);
-        $this->getDeletionsWithoutSecondaryKey($table_data, $table_name);
-      }
+        $this->io->text(sprintf('<info>#### %s ####</info>', OutputFormatter::escape($table_name)));
 
-      $this->io->text(sprintf('', OutputFormatter::escape($table_name)));
+        // If table have secondary key, use it.
+        if ($table_data['secondary_key'])
+        {
+          $existing_secondary_keys = $this->getChangesWithSecondaryKey($table_data, $table_name);
+          $this->getAddingsWithSecondaryKey($existing_secondary_keys, $table_data, $table_name);
+          $this->getDeletionsWithSecondaryKey($table_data, $table_name);
+        }
+        // If we don't have secondary key use primary key.
+        else
+        {
+          $existing_primary_keys = $this->getChangesWithoutSecondaryKey($table_data, $table_name);
+          $this->getAddingsWithoutSecondaryKey($existing_primary_keys, $table_data, $table_name);
+          $this->getDeletionsWithoutSecondaryKey($table_data, $table_name);
+        }
+
+        $this->io->text(sprintf('', OutputFormatter::escape($table_name)));
+      }
     }
   }
 

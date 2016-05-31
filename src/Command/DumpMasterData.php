@@ -5,10 +5,13 @@ namespace SetBased\DataSync\Command;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Ramsey\Uuid\Uuid;
 use SetBased\DataSync\Config;
+use SetBased\DataSync\DependencyGraph;
 use SetBased\DataSync\Metadata;
 use SetBased\DataSync\MySql\DataLayer;
+use SetBased\DataSync\Node;
 use SetBased\Exception\RuntimeException;
 use SetBased\Stratum\Style\StratumStyle;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 
 //----------------------------------------------------------------------------------------------------------------------
 /**
@@ -63,9 +66,9 @@ class DumpMasterData
   /**
    * Object constructor.
    *
-   * @param Config    $config    The config file object.
-   * @param DataLayer $dataLayer The data layer.
-   * @param StratumStyle $io             The output decorator.
+   * @param Config       $config    The config file object.
+   * @param DataLayer    $dataLayer The data layer.
+   * @param StratumStyle $io        The output decorator.
    */
   public function __construct($config, $dataLayer, $io)
   {
@@ -84,6 +87,8 @@ class DumpMasterData
   {
     $this->config->readConfigFile($this->config->fileName);
     $this->generateData();
+    $this->detectSelfReferences();
+    $this->detectCycles();
 
     $this->dump();
 
@@ -120,6 +125,50 @@ class DumpMasterData
 
     // Set new id's for PK values
     $this->setNewIDs();
+  }
+  
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Detects self references and writes about it.
+   */
+  private function detectSelfReferences()
+  {
+    foreach ($this->config->data['metadata'] as $table_name => $table)
+    {
+      if ($this->config->data['metadata'][$table_name]['foreign_keys'])
+      {
+        foreach($this->config->data['metadata'][$table_name]['foreign_keys'] as $fk_number => $fk_data)
+        {
+          if ($fk_data['table'] == $fk_data['refTable'])
+          {
+            $this->io->text(sprintf(''));
+            $this->io->text(sprintf('table <sql>%s</sql> has self references:', OutputFormatter::escape($table_name)));
+            $this->io->text(sprintf('<info>%s</info> => <info>%s</info>', OutputFormatter::escape($fk_data['column']),
+                                                                          OutputFormatter::escape($fk_data['refColumn'])));
+            $this->io->text(sprintf(''));
+
+          }
+        }
+      }
+    }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Detects cycle dependencies.
+   */
+  private function detectCycles()
+  {
+    $graph = new DependencyGraph($this->io);
+    
+    foreach($this->config->data['metadata'] as $table_name => $table)
+    {
+      $node = new Node($table_name, $table);
+      $graph->addNode($node);
+    }
+
+    $graph->boundNodes();
+    $graph->startSearchCycles();
   }
 
   //--------------------------------------------------------------------------------------------------------------------
