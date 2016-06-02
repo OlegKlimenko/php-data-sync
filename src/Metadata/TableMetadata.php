@@ -21,7 +21,7 @@ class TableMetadata
   /**
    * The primary key.
    *
-   * @var array
+   * @var array|null
    */
   private $primaryKey;
 
@@ -42,7 +42,7 @@ class TableMetadata
   /**
    * The foreign keys.
    *
-   * @var array
+   * @var array|null
    */
   private $foreignKeys;
 
@@ -98,7 +98,7 @@ class TableMetadata
   /**
    * Getter for secondary key.
    *
-   * @return string
+   * @return SecondaryKey
    */
   public function getSecondaryKey()
   {
@@ -121,7 +121,7 @@ class TableMetadata
   /**
    * Setter for primary key.
    *
-   * @param string $primaryKey
+   * @param array $primaryKey
    */
   public function setPrimaryKey($primaryKey)
   {
@@ -245,9 +245,9 @@ class TableMetadata
   /**
    * Creates pretty output data after sql execution.
    *
-   * @param array[] $list
+   * @param array $list
    *
-   * @return array[]
+   * @return array
    */
   private function getColumnNames($list)
   {

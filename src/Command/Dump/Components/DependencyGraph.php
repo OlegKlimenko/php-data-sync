@@ -62,15 +62,21 @@ class DependencyGraph
       {
         if ($found_node->metadata->getForeignKeys())
         {
-          foreach($found_node->metadata->getForeignKeys() as $fk_name => $fk_data)
-          {
-            if ($fk_data->getRefTable() == $node->name && $fk_data->getRefTable() != $fk_data->getTable())
-            {
-              $this->nodes[$node_num]->children[] = $found_node->name;
-              $this->nodes[$found_node_num]->parents[] = $node->name;
-            }
-          }
+          $this->setNodes($node_num, $node, $found_node_num, $found_node);
         }
+      }
+    }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  private function setNodes($node_num, $node, $found_node_num, $found_node)
+  {
+    foreach($found_node->metadata->getForeignKeys() as $fk_name => $fk_data)
+    {
+      if ($fk_data->getRefTable() == $node->name && $fk_data->getRefTable() != $fk_data->getTable())
+      {
+        $this->nodes[$node_num]->children[] = $found_node->name;
+        $this->nodes[$found_node_num]->parents[] = $node->name;
       }
     }
   }

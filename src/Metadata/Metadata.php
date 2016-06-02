@@ -115,26 +115,40 @@ class Metadata
       $metadata[$table_name]['primary_key'] = $table->getPrimaryKey();
       $metadata[$table_name]['primary_autoincrement'] = $table->getAutoincrement();
       $metadata[$table_name]['secondary_key'] = $table->getSecondaryKey();
+      $metadata[$table_name]['foreign_keys'] = $this->insertForeignKeys($table);
 
-      $foreign_keys = $table->getForeignKeys();
-      if ($foreign_keys)
-      {
-        $metadata[$table_name]['foreign_keys'] = [];
-        foreach($table->getForeignKeys() as $fk_number => $fk_data)
-        {
-          $metadata[$table_name]['foreign_keys'][$fk_number] = ['foreignKeyName' => $fk_data->getFkName(),
-                                                                'table' => $fk_data->getTable(),
-                                                                'column' => $fk_data->getColumn(),
-                                                                'refTable' => $fk_data->getRefTable(),
-                                                                'refColumn' => $fk_data->getRefColumn()];
-        }
-      }
-      else
-      {
-        $metadata[$table_name]['foreign_keys'] = null;
-      }
     }
     return $metadata;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Inserts foreign keys in structure.
+   *
+   * @param TableMetadata $table The metadata of a table.
+   *
+   * @return array|null
+   */
+  private function insertForeignKeys($table)
+  {
+    $fk = $table->getForeignKeys();
+    if ($fk)
+    {
+      $foreign_keys = [];
+      foreach($table->getForeignKeys() as $fk_number => $fk_data)
+      {
+        $foreign_keys[$fk_number] = ['foreignKeyName' => $fk_data->getFkName(),
+                                     'table' => $fk_data->getTable(),
+                                     'column' => $fk_data->getColumn(),
+                                     'refTable' => $fk_data->getRefTable(),
+                                     'refColumn' => $fk_data->getRefColumn()];
+      }
+    }
+    else
+    {
+      $foreign_keys = null;
+    }
+    return $foreign_keys;
   }
 
   // -------------------------------------------------------------------------------------------------------------------

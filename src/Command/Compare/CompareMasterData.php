@@ -175,31 +175,61 @@ class CompareMasterData
     {
       foreach($this->localFileData[$tableName] as $local_record)
       {
-        // Pass over each primary key, because primary key can be complex.
-        $pk_equality = true;
-        foreach($tableMetadata['primary_key'] as $primary_key)
-        {
-          if ($remote_record[$primary_key] != $local_record[$primary_key])
-          {
-            $pk_equality = false;
-          }
-        }
+        $pk_equality = $this->passOverPrimaryKeys($tableMetadata, $remote_record, $local_record);
 
         if ($pk_equality)
         {
-          $this->checkChanges($tableMetadata['primary_key'], $remote_record, $local_record);
-          $primary = [];
-
-          // Generate and store primary key, because PK can be complex.
-          foreach ($tableMetadata['primary_key'] as $primary_key)
-          {
-            $primary[] = $remote_record[$primary_key];
-          }
-          $passed_primary_keys[] = $primary;
+          $passed_primary_keys[] = $this->generatePrimaryKey($tableMetadata, $remote_record, $local_record);
         }
       }
     }
     return $passed_primary_keys;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Passes over components of primary key and sets the equality state.
+   *
+   * @param array $tableMetadata The array with metadata.
+   * @param array $remote_record The remote record.
+   * @param array $local_record  The local record.
+   *
+   * @return bool
+   */
+  private function passOverPrimaryKeys($tableMetadata, $remote_record, $local_record)
+  {
+    $pk_equality = true;
+
+    foreach($tableMetadata['primary_key'] as $primary_key)
+    {
+      if ($remote_record[$primary_key] != $local_record[$primary_key])
+      {
+        $pk_equality = false;
+      }
+    }
+    return $pk_equality;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Generates primary key, because PK can be complex.
+   *
+   * @param array $tableMetadata The array with metadata.
+   * @param array $remote_record The remote record.
+   * @param array $local_record  The local record.
+   *
+   * @return array
+   */
+  private function generatePrimaryKey($tableMetadata, $remote_record, $local_record)
+  {
+    $this->checkChanges($tableMetadata['primary_key'], $remote_record, $local_record);
+    $primary = [];
+
+    foreach ($tableMetadata['primary_key'] as $primary_key)
+    {
+      $primary[] = $remote_record[$primary_key];
+    }
+    return $primary;
   }
 
   //--------------------------------------------------------------------------------------------------------------------
