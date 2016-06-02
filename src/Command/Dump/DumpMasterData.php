@@ -1,12 +1,13 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
-namespace SetBased\DataSync\Command;
+namespace SetBased\DataSync\Command\Dump;
 
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Ramsey\Uuid\Uuid;
 use SetBased\DataSync\Config;
 use SetBased\DataSync\Metadata;
 use SetBased\DataSync\MySql\DataLayer;
+use SetBased\DataSync\Command\StaticCommand;
 use SetBased\Exception\RuntimeException;
 use SetBased\Stratum\Style\StratumStyle;
 

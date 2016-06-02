@@ -1,6 +1,6 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
-namespace SetBased\DataSync\Command;
+namespace SetBased\DataSync\Command\Compare;
 
 use SetBased\DataSync\Config;
 use SetBased\Stratum\Style\StratumStyle;
@@ -64,9 +64,10 @@ class CompareMasterData
   public function compare($remoteFilename, $localFilename)
   {
     $this->generateTableObjects($remoteFilename, $localFilename);
+    $data= $this->config->getData();
 
     // Passing over each table listed in metadata.
-    foreach($this->config->data['metadata'] as $table_name => $table_data)
+    foreach($data['metadata'] as $table_name => $table_data)
     {
       if (!array_key_exists($table_name, $this->remoteFileData))
       {

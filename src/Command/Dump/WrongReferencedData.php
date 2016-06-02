@@ -1,10 +1,10 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
-namespace SetBased\DataSync\Command;
+namespace SetBased\DataSync\Command\Dump;
 
 use SetBased\DataSync\Config;
-use SetBased\DataSync\Node;
-use SetBased\DataSync\DependencyGraph;
+use SetBased\DataSync\Command\Dump\Components\Node;
+use SetBased\DataSync\Command\Dump\Components\DependencyGraph;
 use SetBased\Stratum\Style\StratumStyle;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 

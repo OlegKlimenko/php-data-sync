@@ -1,6 +1,6 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
-namespace SetBased\DataSync;
+namespace SetBased\DataSync\Command\Dump\Components;
 
 use Exception;
 use SetBased\Stratum\Style\StratumStyle;

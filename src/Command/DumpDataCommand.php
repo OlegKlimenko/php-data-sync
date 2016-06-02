@@ -4,6 +4,8 @@ namespace SetBased\DataSync\Command;
 
 use SetBased\DataSync\Config;
 use SetBased\DataSync\MySql\DataLayer;
+use SetBased\DataSync\Command\Dump\DumpMasterData;
+use SetBased\DataSync\Command\Dump\WrongReferencedData;
 use SetBased\Stratum\Style\StratumStyle;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
