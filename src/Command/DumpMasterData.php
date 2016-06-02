@@ -5,13 +5,10 @@ namespace SetBased\DataSync\Command;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Ramsey\Uuid\Uuid;
 use SetBased\DataSync\Config;
-use SetBased\DataSync\DependencyGraph;
 use SetBased\DataSync\Metadata;
 use SetBased\DataSync\MySql\DataLayer;
-use SetBased\DataSync\Node;
 use SetBased\Exception\RuntimeException;
 use SetBased\Stratum\Style\StratumStyle;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 
 //----------------------------------------------------------------------------------------------------------------------
 /**
@@ -40,13 +37,6 @@ class DumpMasterData
    * @var DataLayer
    */
   private $dataLayer;
-
-  /**
-   * The list of tables with data.
-   *
-   * @var array
-   */
-  private $tableList;
 
   /**
    * The data which we need to dump.
@@ -85,20 +75,11 @@ class DumpMasterData
    */
   public function dumpData($dumpFileName)
   {
-    $this->config->readConfigFile($this->config->fileName);
+    $this->config->readConfigFile($this->config->getFileName());
+
     $this->generateData();
-    $this->detectSelfReferences();
-    $this->detectCycles();
-
-    $this->dump();
-
-    StaticCommand::writeTwoPhases($dumpFileName, json_encode($this->dumpedData, JSON_PRETTY_PRINT), $this->io);
-
-    $f_name = explode('.', $dumpFileName);
-    $f_name[0] = $f_name[0]."-id";
-    $uuid_filename = implode('.', $f_name);
-
-    StaticCommand::writeTwoPhases($uuid_filename, json_encode($this->uuidData, JSON_PRETTY_PRINT), $this->io);
+    $this->generateLookupTable();
+    $this->writeData($dumpFileName);
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -107,161 +88,47 @@ class DumpMasterData
    */
   private function generateData()
   {
+    $table_list = $this->config->getMetadata()->getTableList();
+    $config_data = $this->config->getData();
+
     // Pass over each table name in metadata.
-    foreach ($this->config->metadata->tableList as $table_name => $table)
+    foreach ($table_list as $table_name => $table)
     {
       // Select each row of a table.
-      $rows = $this->dataLayer->selectAllFields($this->config->data['database']['data_schema'], $table_name);
+      $rows = $this->dataLayer->selectAllFields($config_data['database']['data_schema'], $table_name);
 
       foreach($rows as $record_name => $record)
       {
         foreach($record as $field_name => $field_value)
         {
-          $this->tableList[$table_name][$record_name][$field_name]['field_value'] = $field_value;
-          $this->tableList[$table_name][$record_name][$field_name]['additional_value'] = null;
+          $this->dumpedData[$table_name][$record_name][$field_name] = $field_value;
         }
       }
     }
-
-    // Set new id's for PK values
-    $this->setNewIDs();
   }
-  
+
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Detects self references and writes about it.
+   * Generates lookup table with Unique ID's.
    */
-  private function detectSelfReferences()
+  private function generateLookupTable()
   {
-    foreach ($this->config->data['metadata'] as $table_name => $table)
+    foreach($this->dumpedData as $table_name => $table)
     {
-      if ($this->config->data['metadata'][$table_name]['foreign_keys'])
+      foreach($this->dumpedData[$table_name] as $record_name => $record)
       {
-        foreach($this->config->data['metadata'][$table_name]['foreign_keys'] as $fk_number => $fk_data)
+        foreach($this->dumpedData[$table_name][$record_name] as $field_name => $field)
         {
-          if ($fk_data['table'] == $fk_data['refTable'])
-          {
-            $this->io->text(sprintf(''));
-            $this->io->text(sprintf('table <sql>%s</sql> has self references:', OutputFormatter::escape($table_name)));
-            $this->io->text(sprintf('<info>%s</info> => <info>%s</info>', OutputFormatter::escape($fk_data['column']),
-                                                                          OutputFormatter::escape($fk_data['refColumn'])));
-            $this->io->text(sprintf(''));
+          $pk_is_autoincrement = $this->config->getMetadata()->getTableList()[$table_name]->getAutoincrement();
+          $pk_field_name = $this->config->getMetadata()->getTableList()[$table_name]->getPrimaryKey();
 
+          if ($pk_is_autoincrement && $pk_field_name[0] == $field_name)
+          {
+            $this->uuidData[$table_name][$record_name] = [$field, $this->generateUniqueID()];
           }
         }
       }
     }
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Detects cycle dependencies.
-   */
-  private function detectCycles()
-  {
-    $graph = new DependencyGraph($this->io);
-    
-    foreach($this->config->data['metadata'] as $table_name => $table)
-    {
-      $node = new Node($table_name, $table);
-      $graph->addNode($node);
-    }
-
-    $graph->boundNodes();
-    $graph->startSearchCycles();
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Dumps the data and creates a lookup table for UUID's.
-   */
-  private function dump()
-  {
-    foreach ($this->tableList as $table_name => $table)
-    {
-      foreach ($this->tableList[$table_name] as $record_name => $record)
-      {
-        foreach ($this->tableList[$table_name][$record_name] as $field_name => $field)
-        {
-          // Dump whole data.
-          $this->dumpedData[$table_name][$record_name][$field_name] = $field['field_value'];
-
-          $pk_is_autoincrement = $this->config->data['metadata'][$table_name]['primary_autoincrement'];
-          $pk_field_name = $this->config->data['metadata'][$table_name]['primary_key'][0];
-
-          // Dump UUID's
-          if ($pk_is_autoincrement && $pk_field_name == $field_name)
-          {
-            $this->uuidData[$table_name][$record_name] = [$field['additional_value'], $field['field_value']];
-          }
-        }
-      }
-    }
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Sets the UUID's to PK values.
-   */
-  private function setNewIDs()
-  {
-    $unique_records = $this->getPrimaryKeyRows();
-
-    // Set new ID's
-    foreach ($unique_records as $item)
-    {
-      $uuid = (string)$this->generateUniqueID();
-
-      $this->changePkValues($item, $uuid);
-    }
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Selects primary keys with values and put them in array.
-   *
-   * @return array[]
-   */
-  private function getPrimaryKeyRows()
-  {
-    // Select records with PK's.
-    $pk_rows = [];
-    foreach ($this->config->metadata->tableList as $table_name => $table)
-    {
-      foreach ($table->primaryKey as $key => $value)
-      {
-        $pk_rows[] = $this->dataLayer->selectField($value, $this->config->data['database']['data_schema'], $table_name);
-      }
-    }
-
-    // Returns an array only with name of PK field and value of field.
-    return $this->getUniqueRecords($pk_rows);
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Change many times nested array into 'flat' array with values.
-   *
-   * @param array[] $rows The rows which we need to change.
-   *
-   * @return array[]
-   */
-  private function getUniqueRecords($rows)
-  {
-    $unique = [];
-
-    foreach ($rows as $table_name => $row)
-    {
-      foreach ($row as $data)
-      {
-        foreach ($data as $key => $record)
-        {
-          $unique[] = [$key, $record];
-        }
-      }
-    }
-
-    return $unique;
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -288,62 +155,19 @@ class DumpMasterData
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Changes the values of primary keys.
+   * Writes data into .json files.
    *
-   * @param array[] $item The record in table with field name and field value.
-   * @param string  $uuid The unique ID which must be set.
+   * @param string $dumpFileName
    */
-  private function changePkValues($item, $uuid)
+  private function writeData($dumpFileName)
   {
-    // Set new ID's to referenced keys.
-    foreach ($this->config->metadata->tableList as $table_name => $metatable)
-    {
-      if (is_array($metatable->foreignKeys))
-      {
-        foreach ($metatable->foreignKeys as $fk_name => $fk_data)
-        {
-          if ($item[0] == $fk_data['refColumn'])
-          {
-            $this->changeRefValues('ref', $fk_data, $item, $uuid);
-            $this->changeRefValues('', $fk_data, $item, $uuid);
-          }
-        }
-      }
-    }
-  }
+    StaticCommand::writeTwoPhases($dumpFileName, json_encode($this->dumpedData, JSON_PRETTY_PRINT), $this->io);
 
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Change the value referenced on param.
-   *
-   * @param string $state   If set to 'ref_' we change values for referenced tables, Otherwise, for own tables.
-   * @param array  $fk_data The info about foreign key in Metadata table.
-   * @param array  $item    The selected primary key record for checking.
-   * @param string $uuid    The new unique ID for primary key.
-   */
-  private function changeRefValues($state, $fk_data, $item, $uuid)
-  {
-    if ($state == 'ref')
-    {
-      $table  = $state.'Table';
-      $column = $state.'Column';
-    }
-    else
-    {
-      $table  = $state.'table';
-      $column = $state.'column';
-    }
+    $f_name = explode('.', $dumpFileName);
+    $f_name[0] = $f_name[0]."-id";
+    $uuid_filename = implode('.', $f_name);
 
-    foreach ($this->tableList[$fk_data[$table]] as $record_name => $record)
-    {
-      foreach ($record as $field_name => $field)
-      {
-        if ($item[1] == $record[$fk_data[$column]]['field_value'] && !$record[$fk_data[$column]]['additional_value'])
-        {
-          $this->tableList[$fk_data[$table]][$record_name][$fk_data[$column]]['additional_value'] = $uuid;
-        }
-      }
-    }
+    StaticCommand::writeTwoPhases($uuid_filename, json_encode($this->uuidData, JSON_PRETTY_PRINT), $this->io);
   }
 
   // -------------------------------------------------------------------------------------------------------------------

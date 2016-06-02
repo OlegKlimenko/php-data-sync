@@ -1,55 +1,52 @@
 <?php
 //----------------------------------------------------------------------------------------------------------------------
-namespace SetBased\DataSync;
+namespace SetBased\DataSync\Metadata;
 
 //----------------------------------------------------------------------------------------------------------------------
 /**
- * Class for nodes which describes tables and it's dependencies.
+ * Class SecondaryKey of a table
  */
-class Node
+class SecondaryKey
 {
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * The name of node (i.e. Table name).
+   * The name of secondary key.
    *
    * @var string
    */
-  public $name;
-
-  /**
-   * The metadata of a node (i.e. table).
-   *
-   * @var array
-   */
-  public $metadata;
-
-  /**
-   * The name of a parent node.
-   *
-   * @var array
-   */
-  public $parents;
-
-  /**
-   * The list with child nodes.
-   *
-   * @var array
-   */
-  public $children;
+  private $name;
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Node constructor.
+   * SecondaryKey constructor.
    *
-   * @param string $name         The name of a node (i.e name of a table).
-   * @param array  $nodeMetadata The metadata of a node (i.e. of a table).
+   * @param string $name The name of a secondary key column.
    */
-  public function __construct($name, $nodeMetadata)
+  public function __construct($name)
   {
     $this->name = $name;
-    $this->metadata = $nodeMetadata;
-    $this->parents = [];
-    $this->children = [];
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for 'name'.
+   *
+   * @return string
+   */
+  public function getKey()
+  {
+    return $this->name;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Setter for 'name'.
+   *
+   * @param string $newName
+   */
+  public function setKey($newName)
+  {
+    $this->name = $newName;
   }
 
   // -------------------------------------------------------------------------------------------------------------------

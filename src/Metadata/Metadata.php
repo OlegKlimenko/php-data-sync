@@ -16,7 +16,18 @@ class Metadata
    *
    * @var array
    */
-  public $tableList = [];
+  private $tableList = [];
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for list of metadata table objects.
+   *
+   * @return array
+   */
+  public function getTableList()
+  {
+    return $this->tableList;
+  }
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -32,30 +43,59 @@ class Metadata
     // Pass over all table names.
     foreach ($data['tables'] as $table_name => $sync_flag)
     {
-      // Create the metadata if not set for selected table.
+      // Set metadata to metadata object if not set in config for selected table.
       if ($sync_flag and !isset($data['metadata'][$table_name]))
       {
-        $table = new TableMetadata($table_name);
-        $table->setPrimaryKey($dataLayer, $data);
-        $table->setAutoincrement($dataLayer);
-        $table->setSecondaryKeys($dataLayer, $data);
-        $table->setForeignKeys($dataLayer, $data);
-
-        $this->tableList[$table->tableName] = $table;
+        $this->setMetadataFromDatabase($table_name, $dataLayer, $data);
       }
 
-      // Get the metadata if set for selected table.
+      // Set metadata to metadata object if set in config for selected table.
       if ($sync_flag and isset($data['metadata'][$table_name]))
       {
-        $table                   = new TableMetadata($table_name);
-        $table->primaryKey       = $data['metadata'][$table_name]['primary_key'];
-        $table->is_autoincrement = $data['metadata'][$table_name]['primary_autoincrement'];
-        $table->secondaryKey     = $data['metadata'][$table_name]['secondary_key'];
-        $table->foreignKeys      = $data['metadata'][$table_name]['foreign_keys'];
-
-        $this->tableList[$table->tableName] = $table;
+        $this->setMetadataFromExistingFile($table_name, $data);
       }
     }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Fetch metadata from database and set into object.
+   *
+   * @param string          $tableName The name of a table
+   * @param MySql\DataLayer $dataLayer The layer to work with database
+   * @param array           $data      The config data
+   */
+  private function setMetadataFromDatabase($tableName, $dataLayer, $data)
+  {
+    $table = new TableMetadata($tableName);
+    $table->setPrimaryKeyFromDB($dataLayer, $data);
+    $table->setAutoincrementFromDB($dataLayer);
+    $table->setSecondaryKeysFromDB($dataLayer, $data);
+    $table->setForeignKeysFromDB($dataLayer, $data);
+
+    $this->tableList[$table->getTableName()] = $table;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Fetch metadata from config file and set into object.
+   *
+   * @param $tableName
+   * @param $data
+   */
+  private function setMetadataFromExistingFile($tableName, $data)
+  {
+    $table = new TableMetadata($tableName);
+    $table->setPrimaryKey($data['metadata'][$tableName]['primary_key']);
+    $table->setAutoincrement($data['metadata'][$tableName]['primary_autoincrement']);
+
+    $secondary_key = $data['metadata'][$tableName]['secondary_key'];
+    if ($secondary_key) { $table->setSecondaryKey(new SecondaryKey($secondary_key)); }
+    else { $table->setSecondaryKey(null); }
+
+    $table->setForeignKeys($data['metadata'][$tableName]['foreign_keys']);
+
+    $this->tableList[$table->getTableName()] = $table;
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -69,19 +109,31 @@ class Metadata
     $metadata = [];
     foreach ($this->tableList as $table)
     {
-      $table_name          = $table->tableName;
-      $table_pk            = $table->primaryKey;
-      $table_autoincrement = $table->is_autoincrement;
-      $table_sk            = $table->secondaryKey;
-      $table_fk            = $table->foreignKeys;
+      $table_name = $table->getTableName();
 
-      $metadata[$table_name]                          = [];
-      $metadata[$table_name]['primary_key']           = $table_pk;
-      $metadata[$table_name]['primary_autoincrement'] = $table_autoincrement;
-      $metadata[$table_name]['secondary_key']         = $table_sk;
-      $metadata[$table_name]['foreign_keys']          = $table_fk;
+      $metadata[$table_name] = [];
+      $metadata[$table_name]['primary_key'] = $table->getPrimaryKey();
+      $metadata[$table_name]['primary_autoincrement'] = $table->getAutoincrement();
+      $metadata[$table_name]['secondary_key'] = $table->getSecondaryKey();
+
+      $foreign_keys = $table->getForeignKeys();
+      if ($foreign_keys)
+      {
+        $metadata[$table_name]['foreign_keys'] = [];
+        foreach($table->getForeignKeys() as $fk_number => $fk_data)
+        {
+          $metadata[$table_name]['foreign_keys'][$fk_number] = ['foreignKeyName' => $fk_data->getFkName(),
+                                                                'table' => $fk_data->getTable(),
+                                                                'column' => $fk_data->getColumn(),
+                                                                'refTable' => $fk_data->getRefTable(),
+                                                                'refColumn' => $fk_data->getRefColumn()];
+        }
+      }
+      else
+      {
+        $metadata[$table_name]['foreign_keys'] = null;
+      }
     }
-
     return $metadata;
   }
 

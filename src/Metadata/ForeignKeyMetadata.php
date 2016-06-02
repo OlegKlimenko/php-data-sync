@@ -10,39 +10,39 @@ class ForeignKeyMetadata
 {
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * The name of a column.
-   *
-   * @var string
-   */
-  public $column;
-
-  /**
    * The name of a foreign key.
    *
    * @var string
    */
-  public $foreignKeyName;
-
-  /**
-   * The name of a referenced column in referenced table.
-   *
-   * @var string
-   */
-  public $refColumn;
-
-  /**
-   * The name of a referenced table.
-   *
-   * @var string
-   */
-  public $refTable;
+  private $foreignKeyName;
 
   /**
    * The name of a table.
    *
    * @var string
    */
-  public $table;
+  private $table;
+
+  /**
+   * The name of a column.
+   *
+   * @var string
+   */
+  private $column;
+
+  /**
+   * The name of a referenced table.
+   *
+   * @var string
+   */
+  private $refTable;
+
+  /**
+   * The name of a referenced column in referenced table.
+   *
+   * @var string
+   */
+  private $refColumn;
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -57,10 +57,65 @@ class ForeignKeyMetadata
   public function __construct($fkName, $table, $column, $referencedTable, $referencedColumn)
   {
     $this->foreignKeyName = $fkName;
-    $this->table          = $table;
-    $this->column         = $column;
-    $this->refTable       = $referencedTable;
-    $this->refColumn      = $referencedColumn;
+    $this->table = $table;
+    $this->column = $column;
+    $this->refTable = $referencedTable;
+    $this->refColumn = $referencedColumn;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for foreign key name.
+   *
+   * @return string
+   */
+  public function getFkName()
+  {
+    return $this->foreignKeyName;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for table info of foreign key.
+   *
+   * @return string
+   */
+  public function getTable()
+  {
+    return $this->table;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for column info of foreign key.
+   *
+   * @return string
+   */
+  public function getColumn()
+  {
+    return $this->column;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for referenced table of foreign key.
+   *
+   * @return string
+   */
+  public function getRefTable()
+  {
+    return $this->refTable;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for referenced column of foreign key.
+   *
+   * @return string
+   */
+  public function getRefColumn()
+  {
+    return $this->refColumn;
   }
 
   // -------------------------------------------------------------------------------------------------------------------

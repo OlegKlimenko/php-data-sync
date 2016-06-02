@@ -2,11 +2,11 @@
 //----------------------------------------------------------------------------------------------------------------------
 namespace SetBased\DataSync;
 
-//----------------------------------------------------------------------------------------------------------------------
 use Exception;
 use SetBased\Stratum\Style\StratumStyle;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 
+//----------------------------------------------------------------------------------------------------------------------
 /**
  * Class for manipulating with dependencies of tables.
  */
@@ -60,11 +60,11 @@ class DependencyGraph
     {
       foreach($this->nodes as $found_node_num => $found_node)
       {
-        if ($found_node->metadata['foreign_keys'])
+        if ($found_node->metadata->getForeignKeys())
         {
-          foreach($found_node->metadata['foreign_keys'] as $fk_name => $fk_data)
+          foreach($found_node->metadata->getForeignKeys() as $fk_name => $fk_data)
           {
-            if ($fk_data['refTable'] == $node->name and $fk_data['refTable'] != $fk_data['table'])
+            if ($fk_data->getRefTable() == $node->name && $fk_data->getRefTable() != $fk_data->getTable())
             {
               $this->nodes[$node_num]->children[] = $found_node->name;
               $this->nodes[$found_node_num]->parents[] = $node->name;
