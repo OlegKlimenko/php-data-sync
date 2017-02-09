@@ -23,7 +23,7 @@ class CompareMasterData
   /**
    * The config.
    *
-   * @var string
+   * @var Config
    */
   private $config;
 
@@ -115,7 +115,7 @@ class CompareMasterData
    */
   private function readFile($filename)
   {
-    $data = json_decode(file_get_contents($filename), true);
+    $data = (array)json_decode(file_get_contents($filename), true);
 
     return $data;
   }
@@ -209,8 +209,7 @@ class CompareMasterData
     // Pass over each field of two records. And check if we have changes.
     foreach($remoteRecord as $field_name => $remote_field)
     {
-      if ($remoteRecord[$field_name] != $localRecord[$field_name]
-          and !in_array($field_name, $primaryKey))
+      if ($remoteRecord[$field_name] != $localRecord[$field_name] && !in_array($field_name, $primaryKey))
       {
         $is_changed = true;
       }
@@ -218,7 +217,7 @@ class CompareMasterData
 
     if ($is_changed)
     {
-      $this->writeChanges($remoteRecord);
+      $this->outputInfo($remoteRecord, 'change');
     }
   }
 
@@ -240,7 +239,7 @@ class CompareMasterData
     {
       if (!in_array($remote_record[$secondary_key], $existing_secondary_keys))
       {
-        $this->writeAddings($remote_record);
+        $this->outputInfo($remote_record, 'add');
       }
     }
   }
@@ -270,7 +269,7 @@ class CompareMasterData
       // Check if array with existing primary keys, have this primary key. If not, we write added record.
       if (!in_array($primary_keys, $existingPrimaryKeys))
       {
-        $this->writeAddings($remote_record);
+        $this->outputInfo($remote_record, 'add');
       }
     }
   }
@@ -303,7 +302,7 @@ class CompareMasterData
       // If we don't found equality, we know that record is deleted, we write info about it.
       if (!$is_exists)
       {
-        $this->writeDeletions($local_record);
+        $this->outputInfo($local_record, 'delete');
       }
     }
   }
@@ -344,67 +343,29 @@ class CompareMasterData
       // If we don't found equality, we know that record is deleted, we write info about it.
       if (!$is_exists)
       {
-        $this->writeDeletions($local_record);
+        $this->outputInfo($local_record, 'delete');
       }
     }
   }
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Outputs the info aboute changed columns in record.
+   * Outputs the info depending on action.
    *
-   * @param array $remoteRecord
+   * @param string $action The action which we need to output.
+   * @param array  $record The record which we need to output.
    */
-  private function writeChanges($remoteRecord)
+  private function outputInfo($record, $action)
   {
-    $this->io->text(sprintf('<note>%s</note>', OutputFormatter::escape('Updated:')));
+    if ($action == 'change') { $this->io->text(sprintf('<note>%s</note>', OutputFormatter::escape('Updated:'))); }
+    else if ($action == 'add') { $this->io->text(sprintf('<fso>%s</fso>', OutputFormatter::escape('Inserted:'))); }
+    else if ($action == 'delete') { $this->io->text(sprintf('<sql>%s</sql>', OutputFormatter::escape('Deleted:'))); }
+
     $output = "(";
 
-    foreach($remoteRecord as $field_name => $remote_field)
+    foreach($record as $field_name => $remote_field)
     {
       $output = $output." {$remote_field},";
-    }
-
-    $output = rtrim($output, ", ");
-    $output = $output." )";
-    $this->io->text(sprintf('%s', $output));
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Outputs information about added records.
-   *
-   * @param array $remoteRecord
-   */
-  private function writeAddings($remoteRecord)
-  {
-    $this->io->text(sprintf('<fso>%s</fso>', OutputFormatter::escape('Inserted:')));
-    $output = "(";
-
-    foreach($remoteRecord as $field_name => $remote_field)
-    {
-      $output = $output." {$remote_field},";
-    }
-
-    $output = rtrim($output, ", ");
-    $output = $output." )";
-    $this->io->text(sprintf('%s', $output));
-  }
-
-  //--------------------------------------------------------------------------------------------------------------------
-  /**
-   * Outputs information about removed records.
-   *
-   * @param $record
-   */
-  private function writeDeletions($record)
-  {
-    $this->io->text(sprintf('<sql>%s</sql>', OutputFormatter::escape('Deleted:')));
-    $output = "(";
-
-    foreach($record as $field_name => $field)
-    {
-      $output = $output." {$field},";
     }
 
     $output = rtrim($output, ", ");
