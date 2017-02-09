@@ -16,35 +16,35 @@ class TableMetadata
    *
    * @var string
    */
-  public $tableName;
+  private $tableName;
 
   /**
    * The primary key.
    *
-   * @var array[]
+   * @var array|null
    */
-  public $primaryKey = null;
+  private $primaryKey;
 
   /**
    * Is primary key is autoincrement.
    *
    * @var bool
    */
-  public $is_autoincrement = null;
+  private $is_autoincrement;
 
   /**
    * The secondary key.
    *
-   * @var array[]
+   * @var SecondaryKey
    */
-  public $secondaryKey = null;
+  private $secondaryKey;
 
   /**
    * The foreign keys.
    *
-   * @var array[]
+   * @var array|null
    */
-  public $foreignKeys = null;
+  private $foreignKeys;
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -55,16 +55,136 @@ class TableMetadata
   public function __construct($tableName)
   {
     $this->tableName = $tableName;
+    $this->primaryKey = null;
+    $this->is_autoincrement = null;
+    $this->secondaryKey = null;
+    $this->foreignKeys = null;
   }
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Sets the primary key to a table.
+   * Getter for table name.
+   *
+   * @return string
+   */
+  public function getTableName()
+  {
+    return $this->tableName;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for primary key.
+   *
+   * @return array|null
+   */
+  public function getPrimaryKey()
+  {
+    return $this->primaryKey;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for autoincrement state.
+   *
+   * @return bool|null
+   */
+  public function getAutoincrement()
+  {
+    return $this->is_autoincrement;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for secondary key.
+   *
+   * @return SecondaryKey
+   */
+  public function getSecondaryKey()
+  {
+    if ($this->secondaryKey) { return $this->secondaryKey->getKey(); }
+    else { return $this->secondaryKey; }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for foreign keys.
+   *
+   * @return array|null
+   */
+  public function getForeignKeys()
+  {
+    return $this->foreignKeys;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Setter for primary key.
+   *
+   * @param array $primaryKey
+   */
+  public function setPrimaryKey($primaryKey)
+  {
+    $this->primaryKey = $primaryKey;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Setter for autoincrement state attribute.
+   *
+   * @param bool $state
+   */
+  public function setAutoincrement($state)
+  {
+    $this->is_autoincrement = $state;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Setter for secondary key.
+   *
+   * @param string $key
+   */
+  public function setSecondaryKey($key)
+  {
+    $this->secondaryKey = $key;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Sets foreign keys fetched from config file.
+   *
+   * @param array[] $foreignKeys
+   */
+  public function setForeignKeys($foreignKeys)
+  {
+    if ($foreignKeys)
+    {
+      $this->foreignKeys = [];
+
+      foreach ($foreignKeys as $foreign_key)
+      {
+        $this->foreignKeys[] = new ForeignKeyMetadata($foreign_key['foreignKeyName'],
+                                                      $foreign_key['table'],
+                                                      $foreign_key['column'],
+                                                      $foreign_key['refTable'],
+                                                      $foreign_key['refColumn']);
+      }
+    }
+    else
+    {
+      $this->foreignKeys = null;
+    }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Fetches the primary key from a database and set it to an attribute.
    *
    * @param DataLayer $dataLayer The datalayer.
    * @param array[]   $data      The config data.
    */
-  public function setPrimaryKey($dataLayer, $data)
+  public function setPrimaryKeyFromDB($dataLayer, $data)
   {
     $primary_key = $dataLayer::getTablePrimaryKey($data['database']['data_schema'], $this->tableName);
     if (!empty($primary_key))
@@ -75,11 +195,11 @@ class TableMetadata
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Sets the autoincrement state of a primary key of a table.
+   * Fetches the autoincrement state of a primary key from a database and set it to an attribute.
    *
    * @param DataLayer $dataLayer
    */
-  public function setAutoincrement($dataLayer)
+  public function setAutoincrementFromDB($dataLayer)
   {
     $is_autoincrement = $dataLayer::getAutoIncrementInfo($this->tableName);
     if (!empty($is_autoincrement))
@@ -90,34 +210,34 @@ class TableMetadata
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Sets secondary keys for a table.
+   * Fetches the secondary keys from a database and set them to an attribute.
    *
    * @param DataLayer $dataLayer The datalayer.
    * @param array[]   $data      The config data.
    */
-  public function setSecondaryKeys($dataLayer, $data)
+  public function setSecondaryKeysFromDB($dataLayer, $data)
   {
     $secondary_keys = $dataLayer::getTableSecondaryKey($data['database']['data_schema'], $this->tableName);
     if (!empty($secondary_keys))
     {
       $secondary_keys     = self::getColumnNames($secondary_keys[0]);
-      $this->secondaryKey = $secondary_keys[0];
+      $this->secondaryKey = new SecondaryKey($secondary_keys[0]);
     }
   }
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Sets the foreign keys of a table.
+   * Fetches the foreign keys from a database and set them to an attribute.
    *
    * @param DataLayer $dataLayer The datalayer.
    * @param array[]   $data      The config data.
    */
-  public function setForeignKeys($dataLayer, $data)
+  public function setForeignKeysFromDB($dataLayer, $data)
   {
     $foreign_keys = $dataLayer::getForeignKeys($data['database']['data_schema'], $this->tableName);
     if (!empty($foreign_keys))
     {
-      $this->setFkNames($foreign_keys);
+      $this->setForeignKeyNamesFromDB($foreign_keys);
     }
   }
 
@@ -125,9 +245,9 @@ class TableMetadata
   /**
    * Creates pretty output data after sql execution.
    *
-   * @param array[] $list
+   * @param array $list
    *
-   * @return array[]
+   * @return array
    */
   private function getColumnNames($list)
   {
@@ -142,11 +262,11 @@ class TableMetadata
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
-   * Sets foreign keys.
+   * Sets foreign keys fetched from database.
    *
    * @param array[] $foreignKeys
    */
-  private function setFkNames($foreignKeys)
+  public function setForeignKeyNamesFromDB($foreignKeys)
   {
     $this->foreignKeys = [];
     foreach ($foreignKeys as $foreign_key)
