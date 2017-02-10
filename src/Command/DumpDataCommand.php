@@ -4,6 +4,8 @@ namespace SetBased\DataSync\Command;
 
 use SetBased\DataSync\Config;
 use SetBased\DataSync\MySql\DataLayer;
+use SetBased\DataSync\Command\Dump\DumpMasterData;
+use SetBased\DataSync\Command\Dump\WrongReferencedData;
 use SetBased\Stratum\Style\StratumStyle;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -27,9 +29,16 @@ class DumpDataCommand extends Command
   /**
    * The config.
    *
-   * @var string
+   * @var Config
    */
   private $config;
+
+  /**
+   * The data layer for operations with database.
+   *
+   * @var DataLayer
+   */
+  private $dataLayer;
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -54,37 +63,98 @@ class DumpDataCommand extends Command
    */
   protected function execute(InputInterface $input, OutputInterface $output)
   {
-    $this->io = new StratumStyle($input, $output);
-    $this->io->title('Dump master data');
-    
+    // Get names of files which we will use.
     $config_filename    = $input->getArgument('config filename');
     $dump_data_filename = $input->getArgument('dump-data filename');
 
-    // Open JSON file for getting data.
-    $this->config = new Config($config_filename, $this->io);
+    $this->setStyle($input, $output);
 
-    // Open connection with database.
-    $data_layer = new DataLayer();
-    $data_layer::connect($this->config->data['database']['host_name'],
-                         $this->config->data['database']['user_name'],
-                         $this->config->data['database']['password'],
-                         $this->config->data['database']['data_schema']);
-    $data_layer::setIo($this->io);
+    $this->createConfig($config_filename);
+    $this->connectToDatabase();
+    $this->updateConfig();
 
-    // Update config file.
-    $this->config->updateConfigFile($data_layer);
+    $this->dumpMasterData($dump_data_filename);
 
-    // Dumping master data.
-    $dump_master_data = new DumpMasterData($this->config, $data_layer, $this->io);
-    $dump_master_data->dumpData($dump_data_filename);
-
-    // Drop database connection.
-    $data_layer::disconnect();
-
+    $this->dropConnectionToDatabase();
+    
     return 0;
   }
 
   //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Sets style for future outputting data.
+   *
+   * @param InputInterface  $input
+   * @param OutputInterface $output
+   */
+  private function setStyle($input, $output)
+  {
+    $this->io = new StratumStyle($input, $output);
+    $this->io->title('Dump master data');
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Creates config file name.
+   *
+   * @param string $configFilename
+   */
+  private function createConfig($configFilename)
+  {
+    $this->config = new Config($configFilename, $this->io);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Connects to database, sets data layer.
+   */
+  private function connectToDatabase()
+  {
+    $data = $this->config->getData();
+
+    $this->dataLayer = new DataLayer();
+    $this->dataLayer->connect($data['database']['host_name'],
+                         $data['database']['user_name'],
+                         $data['database']['password'],
+                         $data['database']['data_schema']);
+
+    $this->dataLayer->setIo($this->io);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /*
+   * Updates config file.
+   */
+  private function updateConfig()
+  {
+    $this->config->updateConfigFile($this->dataLayer);
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Executes dumping data.
+   *
+   * @param string $dumpDataFilename The name of file name in which we want to dump data.
+   */
+  private function dumpMasterData($dumpDataFilename)
+  {
+    $dump_master_data = new DumpMasterData($this->config, $this->dataLayer, $this->io);
+    $dump_master_data->dumpData($dumpDataFilename);
+
+    $wrong_ref_data = new WrongReferencedData($this->io, $this->config);
+    $wrong_ref_data->checkProblems();
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Closes connection with database.
+   */
+  private function dropConnectionToDatabase()
+  {
+    $this->dataLayer->disconnect();
+  }
+
+  // -------------------------------------------------------------------------------------------------------------------
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------

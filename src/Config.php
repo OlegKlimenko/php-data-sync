@@ -2,7 +2,6 @@
 //----------------------------------------------------------------------------------------------------------------------
 namespace SetBased\DataSync;
 
-
 use SetBased\DataSync\Command\StaticCommand;
 use SetBased\DataSync\Metadata\Metadata;
 use SetBased\Exception\RuntimeException;
@@ -27,21 +26,21 @@ class Config
    *
    * @var string
    */
-  public $fileName;
+  private $fileName;
 
   /**
    * The data of config file.
    *
    * @var array[]
    */
-  public $data;
+  private $data;
 
   /**
    * The metadata of config file.
    *
    * @var Metadata
    */
-  public $metadata;
+  private $metadata;
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
@@ -58,13 +57,46 @@ class Config
 
   //--------------------------------------------------------------------------------------------------------------------
   /**
+   * Getter for 'data' attribute.
+   *
+   * @return array
+   */
+  public function getData()
+  {
+    return $this->data;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for 'fileName' attribute.
+   *
+   * @return string
+   */
+  public function getFileName()
+  {
+    return $this->fileName;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
+   * Getter for metadata object.
+   *
+   * @return Metadata
+   */
+  public function getMetadata()
+  {
+    return $this->metadata;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  /**
    * Reads configuration file. Stores data of config file in class attribute.
    *
    * @param string $configFileName
    */
   public function readConfigFile($configFileName)
   {
-    $this->data = json_decode(file_get_contents($configFileName), true);
+    $this->data = (array)json_decode(file_get_contents($configFileName), true);
     $this->fileName = $configFileName;
   }
 
@@ -110,7 +142,9 @@ class Config
       $this->data['tables'][$name['table_name']] = false;
     }
   }
+
   // -------------------------------------------------------------------------------------------------------------------
 
 }
+
 // ---------------------------------------------------------------------------------------------------------------------
